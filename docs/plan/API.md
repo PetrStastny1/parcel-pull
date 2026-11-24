@@ -19,3 +19,5 @@ Verzovaný záznam v localStorage. Nové rozhraní uloží číselnou zásobu n�
 Převod v1 ponechá výsledky 1–12 a remapuje výsledky 13–15 podle identity desky. Zachová nejlepší tahy a hvězdy. Dříve dohranou přesunutou desku lze opakovat, aniž by to odemklo nehrané sousední desky. Continue obnoví validní jedinou uloženou rozehranou desku i po přesunu mimo běžně odemčenou část; výběr jiné desky tento pokus nahradí. Hranice kampaně je první chybějící výhra v souvislé posloupnosti. Následující deska po výhře nebo celý souhrn se nabídnou jen při běžném postupu. Převod jednou přizná počáteční zásobu `min(3, floor(počet skutečných výher / 3))`; čistá hra má nulu.
 
 CrazyGames může přes volitelnou `watchMuted` předat počáteční hodnotu portálového ztlumení a jeho změny. Hlasitost je zapnutá jen pokud to současně dovolí hráčova volba, portál, viditelnost karty a stav reklamy. Volba portálu lokální nastavení nepřepisuje.
+
+CrazyGames může přes volitelnou `recordCompletion` dostat skutečný podíl dokončené kampaně (0–100) po načtení validovaného uložení a po první výhře každé desky. Podíl se počítá z počtu odlišných výher a počtu desek, včetně validních přemapovaných výsledků.
