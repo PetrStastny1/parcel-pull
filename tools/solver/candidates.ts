@@ -103,7 +103,27 @@ export function layoutKey({ grid, docks }: Layout) {
   return orientations.sort()[0]
 }
 
-function generatePhase(profile: Profile, phase: number, seen: Set<string>) {
+function qualifyLayout(layout: Layout, profile: Profile, attempt: number): Candidate | undefined {
+  const board = parseBoard(attempt, layout.grid, layout.docks)
+  const effective = board.magnets.filter((magnet) => pull(board, board.initial, magnet) !== board.initial)
+  if (effective.length < 2) return undefined
+
+  const route = shortestRoute(board, profile.maximum)
+  if (!route || route.minimum < profile.minimum || route.shortestSolutions > profile.maxSolutions) return undefined
+  if (!route.moves.some(({ before, after }) =>
+    parcels.filter((parcel) => after[parcel] >= 0 && after[parcel] !== before[parcel]).length >= 2,
+  )) return undefined
+
+  const withoutWalls = shortestRoute({ ...board, walls: new Set() }, route.minimum)
+  if (withoutWalls?.minimum === route.minimum && withoutWalls.shortestSolutions === route.shortestSolutions) return undefined
+
+  return {
+    ...layout, attempt, minimum: route.minimum, shortestSolutions: route.shortestSolutions,
+    route: route.moves.map(({ magnet }) => magnet.id),
+  }
+}
+
+function generatePhase(profile: Profile, phase: number, seen: Set<string>, extend = false) {
   const draw = random(profile.seed)
   const accepted: Candidate[] = []
   let attempt = 0
@@ -111,46 +131,59 @@ function generatePhase(profile: Profile, phase: number, seen: Set<string>) {
   let maximums = 0
 
   function search(limit: number, candidateLimit: number) {
-    while (attempt < limit && accepted.length < candidateLimit && maximums < 3) {
+    while (attempt < limit && accepted.length < candidateLimit && (!extend || maximums < 3)) {
       attempt++
       const layout = drawLayout(draw, phase === 0)
-      const board = parseBoard(attempt, layout.grid, layout.docks)
-      const effective = board.magnets.filter((magnet) => pull(board, board.initial, magnet) !== board.initial)
-      if (effective.length < 2) continue
-
-      const route = shortestRoute(board, profile.maximum)
-      if (!route || route.minimum < profile.minimum || route.shortestSolutions > profile.maxSolutions) continue
-      if (!route.moves.some(({ before, after }) =>
-        parcels.filter((parcel) => after[parcel] >= 0 && after[parcel] !== before[parcel]).length >= 2,
-      )) continue
-
-      const withoutWalls = shortestRoute({ ...board, walls: new Set() }, route.minimum)
-      if (withoutWalls?.minimum === route.minimum && withoutWalls.shortestSolutions === route.shortestSolutions) continue
+      const candidate = qualifyLayout(layout, profile, attempt)
+      if (!candidate) continue
 
       const key = layoutKey(layout)
       if (seen.has(key)) continue
       seen.add(key)
-      accepted.push({
-        ...layout, attempt, minimum: route.minimum, shortestSolutions: route.shortestSolutions,
-        route: route.moves.map(({ magnet }) => magnet.id),
-      })
-      if (route.minimum >= 20) qualifying++
-      if (route.minimum === 24) maximums++
+      accepted.push(candidate)
+      if (candidate.minimum >= 20) qualifying++
+      if (candidate.minimum === 24) maximums++
     }
   }
 
   search(50_000, 100)
   const originalQualifying = qualifying
-  if (phase === profiles.length - 1 && qualifying < 3) {
+  if (extend && phase === profiles.length - 1 && qualifying < 3) {
     search(250_000, Infinity)
     if (qualifying < 3) search(1_000_000, Infinity)
   }
   return { seed: profile.seed, attempts: attempt, originalQualifying, qualifying, accepted }
 }
 
-export function selectHardLevels(base: readonly Layout[]) {
+const legacyAttempts = [
+  { previousId: 13, attempt: 28_061 },
+  { previousId: 15, attempt: 51_188 },
+  { previousId: 14, attempt: 234_011 },
+]
+
+export function campaignCandidates(base: readonly Layout[]) {
   const seen = new Set(base.map(layoutKey))
   const phases = profiles.map((profile, index) => generatePhase(profile, index, seen))
+  const finalProfile = profiles[profiles.length - 1]
+  const draw = random(finalProfile.seed)
+  let attempt = 0
+  const legacy = legacyAttempts.map(({ previousId, attempt: target }) => {
+    // Replay the historical draw without solving candidates beyond the standard phase budget.
+    while (++attempt < target) drawLayout(draw, false)
+    const layout = drawLayout(draw, false)
+    const candidate = qualifyLayout(layout, finalProfile, attempt)
+    if (!candidate) throw new Error(`Legacy level ${previousId} fails the final phase filters`)
+    const recorded = phases[phases.length - 1].accepted.find((entry) => entry.attempt === attempt)
+    if (!recorded && seen.has(layoutKey(layout))) throw new Error(`Legacy level ${previousId} is a duplicate`)
+    seen.add(layoutKey(layout))
+    return { ...candidate, previousId }
+  })
+  return { phases, legacy }
+}
+
+export function selectHardLevels(base: readonly Layout[]) {
+  const seen = new Set(base.map(layoutKey))
+  const phases = profiles.map((profile, index) => generatePhase(profile, index, seen, true))
   const hardest = phases[phases.length - 1].accepted
     .filter(({ minimum }) => minimum >= 20)
     .sort((first, second) => second.minimum - first.minimum || first.attempt - second.attempt)
