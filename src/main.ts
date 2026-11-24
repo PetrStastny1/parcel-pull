@@ -2,7 +2,7 @@ import { GameAudio } from './game/audio.ts'
 import { parcels, positionKey, pull, stars } from './game/logic/game.ts'
 import type { Magnet, Positions } from './game/logic/game.ts'
 import { createBoard } from './game/render/board.ts'
-import type { Copy } from './game/render/board.ts'
+import type { Copy, TutorialLane } from './game/render/board.ts'
 import { freshRun, moveRun, undoRun } from './game/run.ts'
 import type { SavedRun } from './game/run.ts'
 import { applyProgressChange, canWriteProgress, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
@@ -305,25 +305,25 @@ function refreshBoard(previous?: Positions, magnet?: Magnet, duration?: number, 
 function cancelTutorial() {
   window.clearTimeout(tutorialTimer)
   window.clearTimeout(tutorialClear)
-  board.tutorial([], false)
+  board.tutorial([], 'none')
 }
 
 function tutorial(initial: boolean) {
   cancelTutorial()
-  const show = (ids: string[], lane: boolean, duration: number, match = false) => {
+  const show = (ids: string[], lane: TutorialLane, duration: number, match = false) => {
     board.tutorial(ids, lane, match)
-    if (duration) tutorialClear = window.setTimeout(() => board.tutorial([], false), duration)
+    if (duration) tutorialClear = window.setTimeout(() => board.tutorial([], 'none'), duration)
   }
   const short = reducedMotion.matches ? 120 : 0
-  if (level.id === 1) show(['W1A'], true, short)
+  if (level.id === 1) show(['W1A'], run.history.length === 0 ? 'full' : 'dock-edge', short)
   if (level.id === 2) {
     if (run.history.length === 0 && initial) {
-      tutorialTimer = window.setTimeout(() => show(['W1'], false, short || 600), 1500)
+      tutorialTimer = window.setTimeout(() => show(['W1'], 'none', short || 600), 1500)
     } else if (run.history.length === 1) {
-      show(['S1A'], false, short || 600)
+      show(['S1A'], 'none', short || 600)
     }
   }
-  if (level.id === 3 && run.history.length === 0 && initial) show(['N3A', 'E3B'], false, short || 600, true)
+  if (level.id === 3 && run.history.length === 0 && initial) show(['N3A', 'E3B'], 'none', short || 600, true)
 }
 
 function renderDialog(focus = true) {

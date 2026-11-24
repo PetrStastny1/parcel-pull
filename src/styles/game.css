@@ -147,8 +147,8 @@ button:focus-visible, select:focus-visible {
 .parcel .parcel-symbol[data-parcel='C'] { width: calc(var(--cell) * .29); }
 .hint-magnet::before { outline: 3px solid var(--star); outline-offset: 1px; }
 .tutorial-cell { background: var(--accent-tint); }
-.tutorial-magnet::before, .tutorial-parcel { outline: 2px solid var(--accent); }
-.tutorial-magnet::before { animation: tutorial-glow 1.15s var(--ease) infinite alternate; }
+.tutorial-magnet::before, .tutorial-parcel, .tutorial-dock-edge { outline: 2px solid var(--accent); }
+.tutorial-magnet::before, .tutorial-dock-edge { animation: tutorial-glow 1.15s var(--ease) infinite alternate; }
 @keyframes tutorial-glow { to { outline-offset: 3px; } }
 .controls {
   grid-area: controls;
@@ -230,7 +230,7 @@ button:focus-visible, select:focus-visible {
   .objective { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tutorial-magnet::before { animation: none; }
+  .tutorial-magnet::before, .tutorial-dock-edge { animation: none; }
 }
 
 .game-dialog {
