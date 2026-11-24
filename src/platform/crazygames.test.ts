@@ -112,3 +112,20 @@ test('CrazyGames reports the initial portal mute setting and subsequent changes'
   listeners[0]({ muteAudio: true })
   deepStrictEqual(muted, [true, false, true])
 })
+
+test('CrazyGames forwards exact campaign completion when supported by the SDK', () => {
+  const sdk = fakeSdk(async () => undefined)
+  const percentages: number[] = []
+  const platform = createCrazyGamesPlatform({
+    ...sdk,
+    game: {
+      ...sdk.game,
+      reportGameCompletedPercentage: (percentage) => { percentages.push(percentage) },
+    },
+  }, false)
+
+  platform.recordCompletion?.(2.5)
+  platform.recordCompletion?.(100)
+  createCrazyGamesPlatform(sdk, false).recordCompletion?.(100)
+  deepStrictEqual(percentages, [2.5, 100])
+})

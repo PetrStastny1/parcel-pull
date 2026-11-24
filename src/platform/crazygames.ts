@@ -17,6 +17,7 @@ export interface CrazyGamesSdk {
     loadingStop(): void
     gameplayStart(): void
     gameplayStop(): void
+    reportGameCompletedPercentage?(percentage: number): void
     readonly settings: { muteAudio: boolean }
     addSettingsChangeListener(listener: (settings: { muteAudio: boolean }) => void): void
   }
@@ -63,6 +64,7 @@ export function createCrazyGamesPlatform(sdk: CrazyGamesSdk, basicLaunch: boolea
     gameplayStart: () => sdk.game.gameplayStart(),
     gameplayStop: () => sdk.game.gameplayStop(),
     record: () => undefined,
+    recordCompletion: (percentage) => sdk.game.reportGameCompletedPercentage?.(percentage),
     watchMuted: (listener) => {
       listener(sdk.game.settings.muteAudio)
       sdk.game.addSettingsChangeListener(({ muteAudio }) => listener(muteAudio))
