@@ -42,7 +42,7 @@ Mřížka má 3–5 sloupců a 2–4 řádky. Pole je volné, obsazené jednou k
 
 ## 4. Ovládání
 
-Myš a dotyk aktivují magnet kliknutím či klepnutím. Pevná šipka každého ovladače ukazuje směr přitažení, symbol na doku značí přijímanou krabici. Poloha kurzoru ani délka stisku směr nemění. Tab prochází ovladače po obvodu od severní hrany zleva ve směru hodinových ručiček, pak ovládací panel. Enter a mezerník aktivují zaměřené tlačítko. `Z` vrací tah, `R` restartuje a Escape otevře pauzu nebo provede Back či Resume v běžném dialogu. Ve stavu výhry, zablokované trasy a čekání na reklamu Escape neprovádí žádnou akci. Klávesové zkratky platí jen v zaměřené hře, bez opakování při držení klávesy. Fokus má viditelný rámeček.
+Myš a dotyk aktivují magnet kliknutím či klepnutím. Pevná šipka každého ovladače ukazuje směr přitažení, symbol na doku značí přijímanou krabici. Poloha kurzoru ani délka stisku směr nemění. Tab prochází ovladače po obvodu od severní hrany zleva ve směru hodinových ručiček, pak ovládací panel. Enter a mezerník aktivují zaměřené tlačítko. `Z` vrací tah, `R` restartuje a Escape otevře pauzu během hry nebo zavře dialog podle §10. U nápovědy odpovídá pokračování, u zablokované trasy a čekání na reklamu nemá žádný účinek. Klávesové zkratky platí jen v zaměřené hře, bez opakování při držení klávesy. Fokus má viditelný rámeček.
 
 Dotykové cíle jsou minimálně 44 × 44 CSS px. Během pohybu (160 ms) nebo bezvýsledného pulzu (100 ms) se další vstup k tahu, Undo a Restart zahodí. Po animaci přijme další samostatnou aktivaci i na stejném magnetu. Zrušení dotyku, gesto mimo ovladač a dotek mřížky nemění stav. Dialog, reklama a skrytá karta blokují vstupy do plochy.
 
@@ -156,17 +156,23 @@ Náčrt schematicky ukazuje hrany, neutrální ovladače a doky se symbolem. Př
 | Stav | Obsah a přechody |
 |---|---|
 | Načítání | Název a průběh přípravy. Po připravení úrovně 1 a načtení pokroku zobrazí první vstup nebo menu při návratu. |
-| První vstup | Titulní vrstva nad deskou 1, `Play`, `Settings`. Play odhalí desku i výukový pulz. |
-| Menu při návratu | `Continue` otevře uložený rozehraný stav, jinak první nedohranou úroveň, po všech výhrách výběr úrovní. Dostupné `Levels` a `Settings`. |
-| Výběr úrovní | Seznam 1–40 se získanými hvězdami a stavem zámku. Aktivace dostupné úrovně otevře její rozehraný stav, pokud je právě ona uložená, jinak začne od začátku. Výběr jiné úrovně nahradí aktuální rozehraný stav. `Back` vrátí menu. |
+| První vstup | Titulní vrstva nad deskou 1, `Play`, `Settings`, `Statistics`. Play odhalí desku i výukový pulz. |
+| Menu při návratu | `Continue` otevře uložený rozehraný stav, jinak první nedohranou úroveň, po všech výhrách výběr úrovní. Dostupné `Levels`, `Settings` a `Statistics`. |
+| Výběr úrovní | Seznam 1–40 se získanými hvězdami a stavem zámku. Aktivace dostupné úrovně otevře její rozehraný stav, pokud je právě ona uložená, jinak začne od začátku. Výběr jiné úrovně nahradí aktuální rozehraný stav. `Back` obnoví výchozí obrazovku. |
 | Hra | Číslo úrovně, mřížka, tahy, Undo, Restart, Hint, Pause. Undo beze změny historie je neaktivní. Hint od úrovně 4 otevře dialog, pokud má hráč bezplatné použití nebo možnost požádat o odměňovanou reklamu. |
 | Pauza | `Resume`, `Levels`, `Settings`. Návrat z nastavení otevře stejnou pauzu. Ztráta viditelnosti během aktivní hry dokončí již vyhodnocený tah bez přehrání zbytku animace a uloží stav. Pokud vznikla výhra nebo zablokování, vrátí se přímo odpovídající stav, jinak hra přejde do pauzy. |
-| Výhra | Hvězdy, výsledný počet tahů, `Next`, `Replay`, `Levels`. Po úrovni 40 nabídne souhrn všech získaných hvězd, `Replay` a `Levels`. |
+| Výhra | Hvězdy, výsledný počet tahů, `Next`, `Replay`, `Levels`. Po dokončení celé kampaně zobrazí závěrečný souhrn. |
+| Závěrečný souhrn | Po dokončení kampaně zobrazí součet nejlepších hvězd ze všech desek, `Replay` a `Levels`. |
+| Statistiky | Z hlavního menu zobrazí počet různých dokončených úrovní z celkového počtu a součet nejlepších hvězd z maxima kampaně, i při nulovém postupu. |
 | Zablokovaná trasa | Deska zůstane viditelná pod vrstvou `Route blocked`. `Undo`, `Restart` nebo `Levels` podle §3. |
 | Nastavení | Přepínač `Sound`, přepínač jazyka `Language` / `Jazyk` s volbami `English` a `Čeština` a tlačítko `Back`. Volba jazyka se projeví okamžitě i v otevřeném nastavení a zachová herní stav. Omezený pohyb se řídí nastavením zařízení. |
 | Nápověda | Nabídne `Use hint` při volné zásobě a `Watch ad for hint` při dostupné nabídce, současně vždy `Resume`. Volba úspěšné nápovědy zavře dialog a ukáže správný magnet. |
 | Reklama čeká | Stav bez tahů a dalšího spuštění reklamy. Ukončení průběžné reklamy nebo chyba spustí požadovanou následující úroveň. |
 | Reklama nedostupná | Při neúspěchu odměňované reklamy text `Video unavailable` v dialogu Hint, dostupné `Resume` a případná bezplatná nápověda. |
+
+Výhra, závěrečný souhrn, statistiky, výběr úrovní, nastavení a pauza mají viditelný křížek vpravo nahoře s dotykovým cílem nejméně 44 × 44 CSS px a lokalizovaným přístupným názvem `Close` / `Zavřít`. Křížek zůstává dostupný i při posuvu dialogu. Tlačítko `Menu` ve všech šesti oknech otevře přímo hlavní obrazovku a zachová pokrok, rozehranou desku, počet tahů a historii Undo, také při nedostupném lokálním úložišti.
+
+Escape a klepnutí na pozadí dialogu odpovídají křížku, pokud lze zavřít okno bez ztráty rozehrané hry. Z pauzy pokračují na stejné desce, z výběru, nastavení a statistik obnoví výchozí obrazovku a její fokus a z výhry či závěrečného souhrnu otevřou menu. Zavření ani Menu nevyžaduje reklamu. Klepnutí uvnitř dialogu a dotyk, který začne uvnitř a skončí vně, okno nezavírají.
 
 Po závěru hry se přesun fokusu řídí primární akcí aktuálního stavu. Po opuštění dialogu se fokus vrací na vyvolávající ovladač, pokud je stále dostupný. Textový stav mřížky, účinek tahu a zbývající zásilky jsou dostupné čtečce obrazovky.
 
@@ -207,6 +213,8 @@ Celý první download nejvýše 500 kB komprimovaně bez SDK, zobrazení prvníh
 7. Playwright v čistých relacích ověří češtinu pro `cs-CZ`, angličtinu pro `en-GB`, první podporovanou volbu v pořadí preferencí a angličtinu pro seznam obsahující pouze nepodporované jazyky. Ověří text první obrazovky a atribut `lang`.
 8. Playwright otevře nastavení z menu i z pauzy, přepne mezi angličtinou a češtinou a ověří okamžitou změnu textů a atributu `lang`. Z pauzy se vrátí na stejnou desku se stejnými pozicemi krabic, počtem tahů a historií Undo. Po obnovení stránky má uložená volba přednost před jazykem prohlížeče. Při blokovaném úložišti přepnutí funguje do obnovení stránky.
 9. Oba slovníky mají shodné klíče a vyplněné překlady. V obou jazycích se ověří texty a přístupné názvy ve stavech z §10, včetně hlášení o zablokované trase, nedostupném videu a nedostupném uložení. Texty se vejdou do rozvržení při minimálních rozměrech z §9.
+
+10. Playwright ověří ve výhře, závěrečném souhrnu, statistikách, výběru, nastavení a pauze přístupný křížek nejméně 44 × 44 CSS px a akci Menu, v obou jazycích a při 320 × 480 i 568 × 320. Ověří shodu křížku, Escape a klepnutí mimo dialog, dostupnost křížku po posuvu dlouhého výběru, zachování tahu a Undo po Menu a Pokračovat i s blokovaným úložištěm a návrat z výhry či souhrnu bez reklamního požadavku.
 
 ## 16. Mimo rozsah první verze
 
