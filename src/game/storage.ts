@@ -5,12 +5,14 @@ import type { Language } from '../i18n/index.ts'
 type Result = { moves: number; stars: number }
 export type ProgressChange = Partial<Pick<Progress, 'sound' | 'language' | 'run'>> & {
   result?: { level: number; moves: number; stars: number }
+  spendHint?: boolean
 }
 export type SavedRun = { level: number; positions: Positions; history: Positions[]; won: boolean }
 export type Progress = {
-  version: 1
+  version: 2
   sound: boolean
   language?: Language
+  hints: number
   results: Record<number, Result>
   run?: SavedRun
 }
@@ -39,61 +41,94 @@ export function unlockedLevel(progress: Progress, lastLevel: number) {
   return level
 }
 
-export function readProgress(levels: readonly Level[]) {
-  const empty: Progress = { version: 1, sound: true, results: {} }
-  let raw: string | null
+export function readProgress(levels: readonly Level[], legacyLevelIds: Readonly<Record<number, number>>) {
+  const empty: Progress = { version: 2, sound: true, hints: 0, results: {} }
+  let saved: unknown
   try {
-    raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(key)
+    if (raw === null) return { progress: empty, available: true }
+    try {
+      saved = JSON.parse(raw)
+    } catch {
+      return { progress: empty, available: true }
+    }
   } catch {
     return { progress: empty, available: false }
   }
-  if (raw === null) return { progress: empty, available: true }
 
-  let saved: unknown
-  try {
-    saved = JSON.parse(raw)
-  } catch {
-    return { progress: empty, available: true }
-  }
-  if (!record(saved) || saved.version !== 1 || typeof saved.sound !== 'boolean' || !record(saved.results)) {
+  if (!record(saved) || (saved.version !== 1 && saved.version !== 2) ||
+      typeof saved.sound !== 'boolean' || !record(saved.results)) {
     return { progress: empty, available: true }
   }
 
+  const migrated = saved.version === 1
+  const currentId = (id: number) => {
+    if (!migrated || id <= 12) return id
+    return legacyLevelIds[id]
+  }
   const progress: Progress = { ...empty, sound: saved.sound }
   if (saved.language === 'en' || saved.language === 'cs') progress.language = saved.language
-  for (const level of levels) {
-    const result = saved.results[level.id]
-    if (!record(result) || typeof result.moves !== 'number' || !Number.isInteger(result.moves) ||
-      result.moves < level.minimum || typeof result.stars !== 'number' || !Number.isInteger(result.stars) ||
-      result.stars < 1 || result.stars > 3) break
-    progress.results[level.id] = { moves: result.moves, stars: result.stars }
+  for (const [storedId, result] of Object.entries(saved.results)) {
+    const level = levels[currentId(Number(storedId)) - 1]
+    if (level && record(result) && typeof result.moves === 'number' && Number.isSafeInteger(result.moves) &&
+        result.moves >= level.minimum && typeof result.stars === 'number' && Number.isInteger(result.stars) &&
+        result.stars >= 1 && result.stars <= 3) {
+      progress.results[level.id] = { moves: result.moves, stars: result.stars }
+    }
   }
+
+  if (migrated) {
+    progress.hints = Math.min(3, Math.floor(Object.keys(progress.results).length / 3))
+  } else if (typeof saved.hints === 'number' && Number.isInteger(saved.hints) && saved.hints >= 0 && saved.hints <= 3) {
+    progress.hints = saved.hints
+  }
+
   if (record(saved.run)) {
     const run = saved.run
-    const level = levels.find((board) => board.id === run.level)
-    if (level && level.id <= unlockedLevel(progress, levels.length) && validPositions(run.positions, level) &&
-      run.won === isWon(run.positions) && Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
+    const level = typeof run.level === 'number' ? levels[currentId(run.level) - 1] : undefined
+    if (level && (level.id <= unlockedLevel(progress, levels.length) || Object.values(legacyLevelIds).includes(level.id)) &&
+      validPositions(run.positions, level) && run.won === isWon(run.positions) &&
+      Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
       progress.run = { level: level.id, positions: run.positions, history: run.history, won: run.won }
     }
   }
-  return { progress, available: true }
+  return { progress, available: true, migrated }
 }
 
-export function writeProgress(levels: readonly Level[], { result, ...change }: ProgressChange) {
-  const latest = readProgress(levels)
-  if (!latest.available) return false
-  const progress = { ...latest.progress, ...change }
+export function applyProgressChange(previous: Progress, { result, spendHint, ...change }: ProgressChange) {
+  const progress = { ...previous, ...change }
+  const spent = Boolean(spendHint && progress.hints > 0)
+  if (spent) progress.hints--
   if (result) {
     const best = progress.results[result.level]
-    progress.results[result.level] = {
-      moves: Math.min(result.moves, best?.moves ?? result.moves),
-      stars: Math.max(result.stars, best?.stars ?? result.stars),
+    progress.results = {
+      ...progress.results,
+      [result.level]: {
+        moves: Math.min(result.moves, best?.moves ?? result.moves),
+        stars: Math.max(result.stars, best?.stars ?? result.stars),
+      },
+    }
+    if (!best && Object.keys(progress.results).length % 3 === 0) progress.hints = Math.min(3, progress.hints + 1)
+  }
+  return { progress, spent }
+}
+
+export async function writeProgress(
+  levels: readonly Level[],
+  legacyLevelIds: Readonly<Record<number, number>>,
+  fallback: Progress,
+  change: ProgressChange,
+) {
+  const write = () => {
+    const latest = readProgress(levels, legacyLevelIds)
+    const updated = applyProgressChange(latest.available ? latest.progress : fallback, change)
+    if (!latest.available) return { ...updated, available: false }
+    try {
+      localStorage.setItem(key, JSON.stringify(updated.progress))
+      return { ...updated, available: true }
+    } catch {
+      return { ...updated, available: false }
     }
   }
-  try {
-    localStorage.setItem(key, JSON.stringify(progress))
-    return true
-  } catch {
-    return false
-  }
+  return navigator.locks ? navigator.locks.request(key, write) : write()
 }

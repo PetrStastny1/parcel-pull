@@ -39,5 +39,14 @@
   "languageCzech": "Čeština",
   "board": "Board",
   "boardSize": "{columns} columns, {rows} rows.",
-  "wallPosition": "Wall at column {column}, row {row}."
+  "wallPosition": "Wall at column {column}, row {row}.",
+  "loading": "Preparing the game…",
+  "hint": "Hint",
+  "useHint": "Use hint",
+  "watchAd": "Watch ad for hint",
+  "adWaiting": "Waiting for ad",
+  "videoUnavailable": "Video unavailable",
+  "hintStock": "Hints available: {count}",
+  "hintedMagnet": "Suggested magnet",
+  "hintSuggestion": "Suggested magnet: {magnet}"
 }
