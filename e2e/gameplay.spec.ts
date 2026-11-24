@@ -160,6 +160,16 @@ test('earns and uses a local hint without allowing a second claim on replay', as
   await expect(action(page, en.hint)).toBeDisabled()
   await pull(page, firstSix[3])
   await expect.poll(async () => (await storedProgress(page))?.hints).toBe(0)
+
+  await action(page, en.next).click()
+  await pull(page, firstSix[4])
+  await action(page, en.next).click()
+  await pull(page, firstSix[5])
+  await action(page, en.replay).click()
+  await action(page, en.hint).click()
+  await expect(page.getByText('Hints available: 1')).toBeVisible()
+  await expect(action(page, en.useHint)).toBeVisible()
+  await expect(action(page, en.watchAd)).toHaveCount(0)
 })
 
 test('hides a free recommendation after three active seconds', async ({ page }) => {
@@ -344,6 +354,11 @@ for (const { locale, copy, outcome, viewport } of [
       await expect(video).toHaveCount(0)
       await expect(resume).toBeVisible()
       expect((await collected(page)).events.filter(({ type }) => type === 'hint_use')).toEqual([])
+      await resume.click()
+      await action(page, copy.restart).click()
+      await action(page, copy.hint).click()
+      await expect(video).toHaveCount(0)
+      await expect(action(page, copy.useHint)).toBeVisible()
       await action(page, copy.useHint).click()
       await expect(page.locator(recommendation)).toHaveCount(1)
       expect((await collected(page)).events.filter(({ type }) => type === 'hint_use')).toEqual([
