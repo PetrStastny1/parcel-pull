@@ -194,6 +194,9 @@ test('pairs gameplay lifecycle and emits level events through blocking, undo and
   expect((await collected(page)).signals).toEqual(['loadingStart', 'loadingStop'])
   expect((await collected(page)).completion).toEqual([0])
   await action(page, en.play).click()
+  await expect.poll(async () => (await collected(page)).signals).toEqual([
+    'loadingStart', 'loadingStop', 'gameplayStart',
+  ])
   await page.evaluate(() => {
     window.dispatchEvent(new Event('blur'))
     window.dispatchEvent(new Event('focus'))
@@ -202,6 +205,9 @@ test('pairs gameplay lifecycle and emits level events through blocking, undo and
   await action(page, en.pause).click()
   await page.clock.runFor(4000)
   await action(page, en.resume).click()
+  await expect.poll(async () => (await collected(page)).signals).toEqual([
+    'loadingStart', 'loadingStop', 'gameplayStart', 'gameplayStop', 'gameplayStart',
+  ])
   await page.clock.runFor(200)
   await pull(page, firstSix[0])
   await expect(page.getByRole('heading', { name: 'Level 1 complete' })).toBeVisible()
