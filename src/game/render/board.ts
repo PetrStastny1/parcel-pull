@@ -185,5 +185,15 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
     for (const parcel of parcels) boxes[parcel].classList.toggle('tutorial-parcel', matchParcels)
   }
 
-  return { element, describe, show, pulse, tutorial, focus: () => magnets.values().next().value?.focus() }
+  let hintButton: HTMLButtonElement | undefined
+  const highlightHint = (magnet?: Magnet, description?: string) => {
+    hintButton?.classList.remove('hint-magnet')
+    hintButton?.removeAttribute('aria-description')
+    hintButton = magnet && magnets.get(magnet)
+    hintButton?.classList.add('hint-magnet')
+    if (description) hintButton?.setAttribute('aria-description', description)
+    return hintButton?.getAttribute('aria-label')
+  }
+
+  return { element, describe, show, pulse, tutorial, highlightHint, focus: () => magnets.values().next().value?.focus() }
 }
