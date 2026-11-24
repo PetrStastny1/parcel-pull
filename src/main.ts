@@ -385,6 +385,10 @@ function escape() {
   else if (screen === 'settings' || screen === 'levels') back()
 }
 
+dialog.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && event.repeat) event.preventDefault()
+})
+
 dialog.addEventListener('cancel', (event) => {
   event.preventDefault()
   escape()
