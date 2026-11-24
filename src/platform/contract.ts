@@ -19,6 +19,7 @@ export interface Platform {
   gameplayStart(): void
   gameplayStop(): void
   record(event: GameEvent): void
+  watchMuted?(listener: (muted: boolean) => void): void
 }
 
 declare global {
