@@ -64,7 +64,8 @@ export function createCrazyGamesPlatform(sdk: CrazyGamesSdk, basicLaunch: boolea
     gameplayStart: () => sdk.game.gameplayStart(),
     gameplayStop: () => sdk.game.gameplayStop(),
     record: () => undefined,
-    recordCompletion: (percentage) => sdk.game.reportGameCompletedPercentage?.(percentage),
+    // The SDK accepts whole percentages and must report 100 only at real completion.
+    recordCompletion: (percentage) => sdk.game.reportGameCompletedPercentage?.(Math.floor(percentage)),
     watchMuted: (listener) => {
       listener(sdk.game.settings.muteAudio)
       sdk.game.addSettingsChangeListener(({ muteAudio }) => listener(muteAudio))
