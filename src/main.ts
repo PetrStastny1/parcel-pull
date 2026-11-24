@@ -1,9 +1,11 @@
 import { GameAudio } from './game/audio.ts'
-import { isWon, parcels, positionKey, pull, stars } from './game/logic/game.ts'
+import { parcels, positionKey, pull, stars } from './game/logic/game.ts'
 import type { Magnet, Positions } from './game/logic/game.ts'
 import { createBoard } from './game/render/board.ts'
 import type { Copy } from './game/render/board.ts'
-import { applyProgressChange, readProgress, unlockedLevel, writeProgress } from './game/storage.ts'
+import { freshRun, moveRun, undoRun } from './game/run.ts'
+import type { SavedRun } from './game/run.ts'
+import { applyProgressChange, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
 import type { ProgressChange } from './game/storage.ts'
 import { browserLanguage, translate } from './i18n/index.ts'
 import type { MessageKey } from './i18n/index.ts'
@@ -28,7 +30,7 @@ const copy: Copy = (key, values) => translate(language, key, values)
 const audio = new GameAudio()
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const maximum = levels.length
-let run = progress.run ?? freshRun(1)
+let run = progress.run ?? freshRun(levels[0])
 let level = levels[run.level - 1]
 let screen: Screen = 'loading'
 let returnTo: LevelPickerSource = 'menu'
@@ -38,6 +40,7 @@ let pendingScreen: 'won' | 'blocked' | undefined
 let tutorialTimer: number | undefined
 let tutorialClear: number | undefined
 let platform: Platform
+let platformMuted = false
 let updatingRun = false
 let levelEntered = false
 let levelAnnounced = false
@@ -85,11 +88,8 @@ app.append(game, dialog)
 let board = createBoard(level, activate)
 stage.append(board.element)
 
-function freshRun(id: number) {
-  return { level: id, positions: levels[id - 1].initial, history: [] as Positions[], won: false }
-}
-
 async function save(change: ProgressChange) {
+  if (change.run) progress.run = change.run
   const updated = storageAvailable
     ? await writeProgress(levels, legacyLevelIds, progress, change)
     : { ...applyProgressChange(progress, change), available: false }
@@ -97,11 +97,11 @@ async function save(change: ProgressChange) {
   progress.results = updated.progress.results
   progress.hints = updated.progress.hints
   updateHintButton()
-  return updated.spent
+  return updated
 }
 
 function updateAudio() {
-  audio.update(progress.sound, !document.hidden && screen !== 'ad')
+  audio.update(progress.sound && !platformMuted, !document.hidden && screen !== 'ad')
 }
 
 function eventContext() {
@@ -119,6 +119,7 @@ function stopGameplay() {
 function startGameplay() {
   if (activeSince !== undefined || document.hidden || screen !== 'game') return
   activeSince = performance.now()
+  levelEntered = true
   platform.gameplayStart()
   if (!levelAnnounced) {
     platform.record({ type: 'level_start', ...eventContext() })
@@ -129,8 +130,13 @@ function startGameplay() {
 
 function exitLevel() {
   stopGameplay()
-  if (levelEntered && !run.won) platform.record({ type: 'level_exit', ...eventContext() })
+  if (levelEntered && levelAnnounced && !run.won) platform.record({ type: 'level_exit', ...eventContext() })
   levelEntered = false
+  levelAnnounced = false
+}
+
+function reportCompletion() {
+  platform.recordCompletion?.(100 * Object.keys(progress.results).length / maximum)
 }
 
 function canUseFreeHint() {
@@ -218,7 +224,7 @@ async function useFreeHint() {
   const magnet = findHint()
   if (!magnet) return
   claimingHint = true
-  const spent = await save({ spendHint: true })
+  const { spent } = await save({ spendHint: true })
   claimingHint = false
   if (spent) rewardHint(magnet, 'free')
   else renderDialog()
@@ -325,7 +331,9 @@ function renderDialog(focus = true) {
   dialog.dataset.screen = screen
   const { details, actions: buttons } = dialogContent(dialog, copy, screenTitle[screen], { count: level.id })
   const add = (key: MessageKey, handler: () => void, primary = false) => {
-    const button = actionButton(copy(key), handler, primary)
+    const button = actionButton(copy(key), () => {
+      if (!updatingRun && !claimingHint) handler()
+    }, primary)
     button.dataset.action = key
     buttons.append(button)
     return button
@@ -388,12 +396,12 @@ function renderDialog(focus = true) {
       progress.sound = sound.checked
       audio.unlock()
       updateAudio()
-      save({ sound: progress.sound })
+      if (storageAvailable) storageAvailable = writePreference('sound', progress.sound)
     })
     const select = languageSelect(language, copy, (selected) => {
       language = selected
       progress.language = selected
-      save({ language })
+      if (storageAvailable) storageAvailable = writePreference('language', language)
       updateCopy()
       refreshBoard()
       renderDialog(false)
@@ -505,17 +513,17 @@ async function enter(id: number, reset = false) {
   clearHint()
   dialogReturnFocus = undefined
   level = levels[id - 1]
-  run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(id)
-  progress.run = run
-  await save({ run })
-  levelEntered = true
-  levelAnnounced = false
-  activeDuration = 0
-  campaignJustCompleted = false
+  run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(level)
+  const saved = save({ run })
   board = createBoard(level, activate)
   stage.replaceChildren(board.element)
   updateCopy()
   refreshBoard()
+  await saved
+  levelEntered = true
+  levelAnnounced = false
+  activeDuration = 0
+  campaignJustCompleted = false
   updatingRun = false
   if (!level.winning.has(positionKey(run.positions))) screen = 'blocked'
   else screen = document.hidden ? 'pause' : 'game'
@@ -560,8 +568,9 @@ async function activate(magnet: Magnet) {
   const previous = run.positions
   const target = magnet.parcel
   const mismatch = target ? parcels.find((parcel) => parcel !== target && previous[parcel] === magnet.lane[0]) : undefined
-  const positions = pull(level, previous, magnet)
-  const blocked = previous === positions
+  const movedRun = moveRun(level, run, magnet)
+  const positions = movedRun.positions
+  const blocked = movedRun === run
   const movementTime = reducedMotion.matches ? 0 : blocked ? 100 : 160
   board.pulse(magnet, blocked, movementTime || 120, mismatch, reducedMotion.matches)
   if (blocked) {
@@ -575,9 +584,7 @@ async function activate(magnet: Magnet) {
   if (level.id === 2 && run.history.length === 0) cancelTutorial()
   const delivered = parcels.filter((parcel) => positions[parcel] < 0 && previous[parcel] >= 0).length
   const moved = parcels.filter((parcel) => positions[parcel] >= 0 && positions[parcel] !== previous[parcel]).length
-  run.history.push(previous)
-  run.positions = positions
-  run.won = isWon(positions)
+  run = movedRun
   const result = run.won ? { level: level.id, moves: run.history.length, stars: stars(level, run.history.length) } : undefined
   if (result) {
     pendingScreen = 'won'
@@ -588,13 +595,13 @@ async function activate(magnet: Magnet) {
     stopGameplay()
     cancelTutorial()
   }
-  const previouslyComplete = Object.keys(progress.results).length === maximum
-  await save({ run, result })
+  const { firstCompletion } = await save({ run, result })
   updatingRun = false
 
   if (result) {
-    campaignJustCompleted = !previouslyComplete && Object.keys(progress.results).length === maximum
+    campaignJustCompleted = firstCompletion && Object.keys(progress.results).length === maximum
     platform.record({ type: 'level_win', durationMs: Math.round(activeDuration), ...eventContext() })
+    if (firstCompletion) reportCompletion()
   } else if (pendingScreen === 'blocked') {
     platform.record({ type: 'level_blocked', ...eventContext() })
   } else if (screen === 'game') {
@@ -611,12 +618,11 @@ async function activate(magnet: Magnet) {
   else finishAnimation(false)
 }
 
-async function restore(positions: Positions, animate: boolean) {
+async function restore(restoredRun: SavedRun, animate: boolean) {
   updatingRun = true
   clearHint()
   const previous = run.positions
-  run.positions = positions
-  run.won = false
+  run = restoredRun
   await save({ run })
   updatingRun = false
   if (screen === 'blocked') {
@@ -636,22 +642,22 @@ async function restore(positions: Positions, animate: boolean) {
 
 function undo() {
   if ((screen !== 'game' && screen !== 'blocked') || updatingRun || animationTimer !== undefined || document.hidden) return
-  const previous = run.history.pop()
-  if (!previous) return
+  const restoredRun = undoRun(run)
+  if (restoredRun === run) return
   audio.unlock()
   audio.play('undo')
-  void restore(previous, true)
+  void restore(restoredRun, true)
 }
 
 function restart() {
   if ((screen !== 'game' && screen !== 'blocked') || updatingRun || animationTimer !== undefined || document.hidden) return
-  run.history = []
   activeDuration = 0
   if (activeSince !== undefined) activeSince = performance.now()
-  void restore(level.initial, false)
+  void restore(freshRun(level), false)
 }
 
 function escape() {
+  if (updatingRun || claimingHint) return
   if (screen === 'game') pause()
   else if (screen === 'pause' || screen === 'hint') resume()
   else if (screen === 'settings' || screen === 'levels') back()
@@ -712,7 +718,12 @@ updateCopy()
 renderDialog()
 platform = await createPlatform()
 platform.loadingStart()
+platform.watchMuted?.((muted) => {
+  platformMuted = muted
+  updateAudio()
+})
 if (loaded.migrated && storageAvailable) await save({})
+reportCompletion()
 screen = 'menu'
 updateAudio()
 refreshBoard()
