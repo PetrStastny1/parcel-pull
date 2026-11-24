@@ -38,7 +38,7 @@ Nejdřív stabilizovat Playwright na původních 16 scénářích. Zachovat Vite
 ## gameplay
 
 - Odpovědnost: stavový tok hry s nápovědou, reklamou, lifecycle a měřením, lokální migrace, UI, texty, scénáře §12 a §15.
-- Hranice: src/main.ts, src/ui/, src/game/storage.ts, src/game/render/, src/game/audio.ts, src/i18n/, src/styles/, e2e/gameplay.spec.ts, e2e/localization.spec.ts.
+- Hranice: src/main.ts, src/ui/, src/game/storage.ts, src/game/run.ts a src/game/run.test.ts, src/game/render/, src/game/audio.ts, src/i18n/, src/styles/, e2e/gameplay.spec.ts, e2e/localization.spec.ts.
 - Závisí na: kontraktech Platform a Level.
 - Akceptační kritéria: rezervy nápověd a všechna omezení, odměna až po úspěchu, stavy z §10, §12 a měření §13, zachovaný dřívější pokrok.
 - Balíčky: stav hry a uložení; UI, lifecycle a řízené reklamní scénáře.
