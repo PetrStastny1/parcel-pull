@@ -5,7 +5,7 @@ import { createBoard } from './game/render/board.ts'
 import type { Copy } from './game/render/board.ts'
 import { freshRun, moveRun, undoRun } from './game/run.ts'
 import type { SavedRun } from './game/run.ts'
-import { applyProgressChange, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
+import { applyProgressChange, canWriteProgress, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
 import type { ProgressChange } from './game/storage.ts'
 import { browserLanguage, translate } from './i18n/index.ts'
 import type { MessageKey } from './i18n/index.ts'
@@ -24,7 +24,7 @@ if (!app) throw new Error('Missing game mount')
 
 const loaded = readProgress(levels, legacyLevelIds)
 const progress = loaded.progress
-let storageAvailable = loaded.available
+let storageAvailable = loaded.available && canWriteProgress()
 let language = progress.language ?? browserLanguage(navigator.languages, navigator.language)
 const copy: Copy = (key, values) => translate(language, key, values)
 const audio = new GameAudio()
@@ -42,6 +42,7 @@ let tutorialClear: number | undefined
 let platform: Platform
 let platformMuted = false
 let updatingRun = false
+let skipMoveAnimation = false
 let levelEntered = false
 let levelAnnounced = false
 let activeSince: number | undefined
@@ -572,14 +573,15 @@ async function activate(magnet: Magnet) {
   const positions = movedRun.positions
   const blocked = movedRun === run
   const movementTime = reducedMotion.matches ? 0 : blocked ? 100 : 160
-  board.pulse(magnet, blocked, movementTime || 120, mismatch, reducedMotion.matches)
   if (blocked) {
+    board.pulse(magnet, true, movementTime || 120, mismatch, reducedMotion.matches)
     audio.play('blocked')
     refreshBoard(undefined, undefined, undefined, copy('noMove'))
     lock(movementTime)
     return
   }
   updatingRun = true
+  skipMoveAnimation = false
   clearHint()
   if (level.id === 2 && run.history.length === 0) cancelTutorial()
   const delivered = parcels.filter((parcel) => positions[parcel] < 0 && previous[parcel] >= 0).length
@@ -609,10 +611,13 @@ async function activate(magnet: Magnet) {
     else cancelTutorial()
   }
 
-  if (screen === 'game' && !document.hidden) audio.play(delivered ? 'delivery' : 'move')
+  const animate = screen === 'game' && !document.hidden && !skipMoveAnimation
+  if (animate) {
+    board.pulse(magnet, false, movementTime || 120, mismatch, reducedMotion.matches)
+    audio.play(delivered ? 'delivery' : 'move')
+  }
   const announcement = [moved ? copy('moved', { count: moved }) : '', delivered ? copy('delivered', { count: delivered }) : '']
     .filter(Boolean).join(' ')
-  const animate = screen === 'game' && !document.hidden
   refreshBoard(previous, magnet, animate ? movementTime : 0, announcement)
   if (animate) lock(movementTime)
   else finishAnimation(false)
@@ -690,8 +695,10 @@ game.addEventListener('keydown', (event) => {
 document.addEventListener('visibilitychange', () => {
   updateAudio()
   if (!document.hidden || screen !== 'game') return
+  if (updatingRun) skipMoveAnimation = true
   stopGameplay()
   if (animationTimer !== undefined) {
+    for (const animation of board.element.getAnimations({ subtree: true })) animation.cancel()
     refreshBoard()
     finishAnimation(false)
   }
