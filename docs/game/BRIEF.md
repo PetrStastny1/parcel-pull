@@ -10,7 +10,7 @@ Klepni na okrajový magnet, posuň všechny krabice v jeho pruhu o jedno pole a 
 
 Jádro je pořadí tahů na sdílených trasách. Když krabice opustí desku, uvolní místo za sebou a dok funguje dál jako magnet. Ze snímku nebo animace má být poznat, že jeden magnet táhne dvě krabice a že jiný magnet přesměruje jednu z nich na křížení. Nejbližší hry používají okrajové magnety pro vedení robota bludištěm nebo dávají robotům schopnosti po dosažení doků. Identitu Parcel Pull tvoří pevné okrajové ovladače, jednotný krok o jedno pole a doručení, které uvolní desku. [Průzkum konkurence](RESEARCH.md)
 
-Pro příležitostné hráče hlavolamů, sezení 2–10 minut, jednotlivé desky přibližně 10–90 sekund. Statická hra HTML5 pro CrazyGames nebo Poki, myš, dotyk i klávesnice, anglické UI, telefon i počítač, na výšku i na šířku.
+Pro příležitostné hráče hlavolamů, sezení 2–10 minut, jednotlivé desky přibližně 10–90 sekund. Statická hra HTML5 pro CrazyGames nebo Poki, myš, dotyk i klávesnice, anglické a české UI, telefon i počítač, na výšku i na šířku.
 
 ## 2. Herní smyčky
 
@@ -163,7 +163,7 @@ Náčrt schematicky ukazuje hrany, neutrální ovladače a doky se symbolem. Př
 | Pauza | `Resume`, `Levels`, `Settings`. Návrat z nastavení otevře stejnou pauzu. Ztráta viditelnosti během aktivní hry dokončí již vyhodnocený tah bez přehrání zbytku animace a uloží stav. Pokud vznikla výhra nebo zablokování, vrátí se přímo odpovídající stav, jinak hra přejde do pauzy. |
 | Výhra | Hvězdy, výsledný počet tahů, `Next`, `Replay`, `Levels`. Po úrovni 40 nabídne souhrn všech získaných hvězd, `Replay` a `Levels`. |
 | Zablokovaná trasa | Deska zůstane viditelná pod vrstvou `Route blocked`. `Undo`, `Restart` nebo `Levels` podle §3. |
-| Nastavení | Přepínač `Sound`, `Back`. Omezený pohyb se řídí nastavením zařízení. |
+| Nastavení | Přepínač `Sound`, přepínač jazyka `Language` / `Jazyk` s volbami `English` a `Čeština` a tlačítko `Back`. Volba jazyka se projeví okamžitě i v otevřeném nastavení a zachová herní stav. Omezený pohyb se řídí nastavením zařízení. |
 | Nápověda | Nabídne `Use hint` při volné zásobě a `Watch ad for hint` při dostupné nabídce, současně vždy `Resume`. Volba úspěšné nápovědy zavře dialog a ukáže správný magnet. |
 | Reklama čeká | Stav bez tahů a dalšího spuštění reklamy. Ukončení průběžné reklamy nebo chyba spustí požadovanou následující úroveň. |
 | Reklama nedostupná | Při neúspěchu odměňované reklamy text `Video unavailable` v dialogu Hint, dostupné `Resume` a případná bezplatná nápověda. |
@@ -190,6 +190,10 @@ Interní události `level_start`, `level_win`, `level_blocked`, `level_exit`, `h
 
 TypeScript + Vite, statický HTML5 build. Herní pravidla čistě v `src/game/logic`. Vykreslování v `src/game/render` přes DOM a CSS, aby ovladače byly nativní tlačítka a hra měla pružný layout. Obrazovky v `src/ui`, úrovně v `src/levels`, platformy v `src/platform`, řešič a generátor v `tools`. Hra za běhu načítá pouze vlastní soubory a povolené volání SDK. Skripty `lint`, `typecheck`, `test`, `build` a `test:e2e`.
 
+Všechny texty herního UI jsou v `src/i18n` ve slovnících `en` a `cs` se stejnými klíči. Patří sem popisky obrazovek a ovladačů, stavová a chybová hlášení, texty s počty a texty pro čtečky obrazovky. Formulace a skloňování počtů se řídí zvoleným jazykem. Atribut `lang` na elementu `html` odpovídá aktuálnímu jazyku od první obrazovky a aktualizuje se při přepnutí.
+
+Při načtení má přednost ruční volba uložená v lokálním nastavení. Pokud chybí, hra použije první podporovaný jazyk z `navigator.languages` v pořadí preferencí. Z regionálních variant použije základní jazyk, například `cs-CZ` jako `cs` a `en-GB` jako `en`. Pokud seznam preferencí chybí nebo je prázdný, použije `navigator.language`. Bez podporované preference se hra zobrazí anglicky. Ruční volba se ukládá stejným způsobem jako zvuk podle §12 a při nedostupném úložišti platí po dobu aktuálního načtení stránky.
+
 Celý první download nejvýše 500 kB komprimovaně bez SDK, zobrazení prvního ovladatelného stavu do 2 s při 5 Mb/s, RTT 100 ms a 4× CPU zpomalení Chrome. Animace cílí na 60 snímků za sekundu. Při měření 10 po sobě spuštěných tahů v Chrome se 4× zpomalením musí mít alespoň 95 % snímků animace interval do 17 ms; žádný dlouhý úkol přes 50 ms při tahu. Tabulka dosažitelnosti se načte před aktivací desky.
 
 ## 15. Akceptační kritéria
@@ -200,6 +204,9 @@ Celý první download nejvýše 500 kB komprimovaně bez SDK, zobrazení prvníh
 4. Playwright v úrovni 3 ověří tah dvou krabic, doručení a zablokovanou trasu po `E3B → N2` a její návrat přes Undo. Dokončení a hvězdy zůstanou po obnovení stránky, poslední rozpracovaná deska obnoví pozice i Undo.
 5. Testovací adaptér ověří průběžnou reklamu jen po Next, deaktivaci reklamních žádostí v Basic Launch, návrat do pauzy po reklamě při skryté kartě, párování lifecycle událostí, zablokování vstupů, ztlumení během přehrávání, chybu a návrat, přesně jednu odměnu při dokončení a žádnou při chybě či zrušení. Bez SDK jsou všechny desky dostupné dosažením výhry a bezplatná nápověda funguje.
 6. Pokryté stavy ze §10 zahrnují první spuštění, dokončení poslední úrovně, ztrátu viditelnosti během hry a verzi s úložištěm blokovaným prohlížečem. Hra projde rozpočtem stažení, startu a animace z §14.
+7. Playwright v čistých relacích ověří češtinu pro `cs-CZ`, angličtinu pro `en-GB`, první podporovanou volbu v pořadí preferencí a angličtinu pro seznam obsahující pouze nepodporované jazyky. Ověří text první obrazovky a atribut `lang`.
+8. Playwright otevře nastavení z menu i z pauzy, přepne mezi angličtinou a češtinou a ověří okamžitou změnu textů a atributu `lang`. Z pauzy se vrátí na stejnou desku se stejnými pozicemi krabic, počtem tahů a historií Undo. Po obnovení stránky má uložená volba přednost před jazykem prohlížeče. Při blokovaném úložišti přepnutí funguje do obnovení stránky.
+9. Oba slovníky mají shodné klíče a vyplněné překlady. V obou jazycích se ověří texty a přístupné názvy ve stavech z §10, včetně hlášení o zablokované trase, nedostupném videu a nedostupném uložení. Texty se vejdou do rozvržení při minimálních rozměrech z §9.
 
 ## 16. Mimo rozsah první verze
 
