@@ -109,6 +109,18 @@ export function readProgress(levels: readonly Level[], legacyLevelIds: Readonly<
   return { progress, available: true, migrated }
 }
 
+export function canWriteProgress() {
+  try {
+    let probe = `${key}.write-test`
+    while (localStorage.getItem(probe) !== null) probe += '.'
+    localStorage.setItem(probe, '1')
+    localStorage.removeItem(probe)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function writePreference<Name extends 'sound' | 'language'>(name: Name, value: NonNullable<Progress[Name]>) {
   try {
     localStorage.setItem(`${key}.${name}`, String(value))
