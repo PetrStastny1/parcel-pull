@@ -1,3 +1,4 @@
 import { defineConfig } from 'vite'
 
-export default defineConfig({ base: './' })
+// GitHub Pages serves the build under /parcel-pull/; dev and e2e keep the root path.
+export default defineConfig(({ command }) => ({ base: command === 'build' ? '/parcel-pull/' : './' }))
