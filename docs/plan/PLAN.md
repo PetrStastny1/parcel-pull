@@ -10,6 +10,7 @@ Dokončit statickou hru Parcel Pull z commitu d3d1b5a na větvi main. Nasazovan�
 - [ ] Uživatelský průchod, ovládání, fokus, 44px cíle, blokace, Undo, Restart, hvězdy a uložení splní §15 body 1–4.
 - [ ] Nápověda, reklamy a lifecycle splní §12 a §15 bod 5, včetně neúspěchů, skryté karty a Basic Launch.
 - [ ] Měření má interní události z §13, portálovou integraci a kontrolovatelný lokální adaptér.
+- [ ] Šest dialogů má přístupný křížek a Menu, zavření zachová rozpracovanou hru a statistiky ukazují správný počet výher a hvězd.
 - [ ] Volba jazyka, změna v pauze a lokalizované a přístupné stavy projdou §15 body 7–9.
 - [ ] Průchod všech 40 bez SDK a výkonnostní měření z §14 projdou na produkčním buildu. Skutečné přijetí na portálech patří ke schválení.
 
@@ -43,7 +44,16 @@ Nejdřív stabilizovat Playwright na původních 16 scénářích. Zachovat Vite
 - Akceptační kritéria: rezervy nápověd a všechna omezení, odměna až po úspěchu, stavy z §10, §12 a měření §13, zachovaný dřívější pokrok.
 - Balíčky: stav hry a uložení; UI, lifecycle a řízené reklamní scénáře.
 
+## dialogs
+
+- Odpovědnost: navigace v šesti dialozích, místní statistiky, překlady a regresní scénáře.
+- Hranice: src/main.ts, src/ui/, src/styles/, src/i18n/, e2e/dialog-navigation.spec.ts.
+- Závisí na: integrované herní a reklamní navigaci.
+- Akceptační kritéria: §10 a §15 bod 10.
+- Balíčky: společné ovládání dialogů a statistiky; ověření návratů a zachování aktuální hry.
+
 # Vlny
 
 1. Úrovně, adaptéry a integrace hry souběžně proti schváleným kontraktům.
-2. Integrace, regresní ověření, měření na statickém buildu a nezávislé kontroly.
+2. Navigace dialogů po integraci herní oblasti.
+3. Regresní ověření, měření na statickém buildu a nezávislé kontroly.
