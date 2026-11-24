@@ -1,0 +1,22 @@
+{
+  "name": "parcel-pull",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc",
+    "lint": "oxlint --deny-warnings src tools e2e",
+    "test": "node --test \"src/**/*.test.ts\" \"tools/**/*.test.ts\"",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.7",
+    "oxlint": "^1.95.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.8"
+  }
+}

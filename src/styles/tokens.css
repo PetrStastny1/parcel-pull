@@ -1,0 +1,182 @@
+/*
+ * Design tokens: clean, modern, Apple-inspired.
+ * The only source of colors, type, spacing, radii and motion in the project.
+ * Light and dark mode follow the system setting.
+ * Per client usually change only --accent (and --accent-contrast if needed).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Typography: SF Pro on Apple devices, self-hosted Inter elsewhere */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-large-title: 2.125rem; /* 34px */
+  --text-title-1: 1.75rem;      /* 28px */
+  --text-title-2: 1.375rem;     /* 22px */
+  --text-title-3: 1.25rem;      /* 20px */
+  --text-body: 1.0625rem;       /* 17px */
+  --text-callout: 1rem;         /* 16px */
+  --text-subhead: 0.9375rem;    /* 15px */
+  --text-footnote: 0.8125rem;   /* 13px */
+  --text-caption: 0.75rem;      /* 12px */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.47;
+  --tracking-title: -0.02em;
+
+  /* Spacing: 4px grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radii */
+  --radius-sm: 8px;   /* inputs, small buttons */
+  --radius-md: 12px;  /* buttons, grouped lists */
+  --radius-lg: 20px;  /* sheets, modals */
+  --radius-full: 999px;
+
+  /* Sizes */
+  --hit-target: 44px;
+  --sidebar-width: 260px;
+  --content-max: 1080px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --duration-fast: 150ms;
+  --duration: 250ms;
+
+  /* Colors: light */
+  --accent: #007aff;
+  --accent-contrast: #ffffff;
+  --accent-tint: rgb(0 122 255 / 0.12);
+
+  --bg: #ffffff;
+  --bg-grouped: #f2f2f7;
+  --surface: #ffffff;           /* rows and blocks on --bg-grouped */
+  --fill: rgb(120 120 128 / 0.12);
+
+  --label: #000000;
+  --label-secondary: rgb(60 60 67 / 0.6);
+  --label-tertiary: rgb(60 60 67 / 0.3);
+  --separator: rgb(60 60 67 / 0.29);
+
+  --success: #34c759;
+  --warning: #ff9500;
+  --danger: #ff3b30;
+
+  --material-bar: rgb(255 255 255 / 0.72);
+  --material-blur: saturate(180%) blur(20px);
+  --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.12); /* only modals and popovers */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #0a84ff;
+    --accent-tint: rgb(10 132 255 / 0.18);
+
+    --bg: #000000;
+    --bg-grouped: #000000;
+    --surface: #1c1c1e;
+    --fill: rgb(118 118 128 / 0.24);
+
+    --label: #ffffff;
+    --label-secondary: rgb(235 235 245 / 0.6);
+    --label-tertiary: rgb(235 235 245 / 0.3);
+    --separator: rgb(84 84 88 / 0.65);
+
+    --success: #30d158;
+    --warning: #ff9f0a;
+    --danger: #ff453a;
+
+    --material-bar: rgb(30 30 30 / 0.72);
+    --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration: 0ms;
+  }
+}
+
+/* Base */
+html {
+  font-family: var(--font-sans);
+  font-size: 100%;
+  line-height: var(--leading-normal);
+  color: var(--label);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  font-size: var(--text-body);
+}
+
+h1, h2, h3 {
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-title);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 2px;
+}
+
+:root {
+  --accent: #175b96;
+  --accent-tint: #dcecf9;
+  --bg-grouped: #f2f5f8;
+  --label: #172434;
+  --label-secondary: #506174;
+  --separator: #ccd7e2;
+  --stage: #e7edf3;
+  --cell-bg: #f9fbfd;
+  --wall: #48596b;
+  --wall-stripe: #5a6b7d;
+  --magnet-bg: #eef3f8;
+  --lane-pulse: #a4c9ec;
+  --blocked-pulse: #d3a890;
+  --parcel-a: #1367a5;
+  --parcel-b: #805111;
+  --parcel-c: #623f8c;
+  --parcel-ink: #fff;
+  --star: #825510;
+  --star-empty: #526275;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #8cc9ff;
+    --accent-tint: #233d56;
+    --accent-contrast: #112031;
+    --bg-grouped: #151c26;
+    --label: #f1f6fa;
+    --label-secondary: #b7c7d7;
+    --separator: #43536a;
+    --stage: #202c3c;
+    --cell-bg: #2e3c50;
+    --magnet-bg: #263548;
+    --lane-pulse: #547da8;
+    --blocked-pulse: #a87363;
+    --star: #ffd88c;
+    --star-empty: #b4c4d6;
+  }
+}
