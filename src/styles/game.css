@@ -246,7 +246,21 @@ button:focus-visible, select:focus-visible {
 }
 .game-dialog::backdrop { background: rgb(13 26 40 / 0.55); }
 .game-dialog h1 { font-size: var(--text-title-1); line-height: var(--leading-tight); margin: 0 0 var(--space-4); letter-spacing: var(--tracking-title); }
+.game-dialog[data-dismissible][open] { display: flex; flex-direction: column; overflow: hidden; }
+.dialog-header {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.dialog-header h1 { margin: 0; align-self: center; }
+.dialog-close { flex: none; padding: 0; font-size: var(--text-title-2); }
 .dialog-details { display: grid; gap: var(--space-3); }
+.game-dialog[data-dismissible] .dialog-details { min-height: 0; overflow: auto; }
+.game-dialog[data-dismissible] .dialog-actions { flex: none; }
+
 .dialog-details:empty { display: none; }
 .dialog-details p { margin: 0; color: var(--label-secondary); }
 .dialog-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -291,6 +305,7 @@ button:focus-visible, select:focus-visible {
 .setting-row input { width: var(--space-5); height: var(--space-5); margin: 0 var(--space-3); accent-color: var(--accent); }
 .level-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
 .level-grid button { min-width: 0; padding-inline: var(--space-1); }
+.level-grid button:focus-visible { outline-offset: -3px; }
 .rating { color: var(--star); font-size: var(--text-title-2); font-variant-numeric: tabular-nums; }
 .level-grid .rating { font-size: var(--text-caption); }
 .empty-stars { color: var(--star-empty); }

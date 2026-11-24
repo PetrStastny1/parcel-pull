@@ -163,14 +163,14 @@ Náčrt schematicky ukazuje hrany, neutrální ovladače a doky se symbolem. Př
 | Pauza | `Resume`, `Levels`, `Settings`. Návrat z nastavení otevře stejnou pauzu. Ztráta viditelnosti během aktivní hry dokončí již vyhodnocený tah bez přehrání zbytku animace a uloží stav. Pokud vznikla výhra nebo zablokování, vrátí se přímo odpovídající stav, jinak hra přejde do pauzy. |
 | Výhra | Hvězdy, výsledný počet tahů, `Next`, `Replay`, `Levels`. Po dokončení celé kampaně zobrazí závěrečný souhrn. |
 | Závěrečný souhrn | Po dokončení kampaně zobrazí součet nejlepších hvězd ze všech desek, `Replay` a `Levels`. |
-| Statistiky | Z hlavního menu zobrazí počet různých dokončených úrovní z celkového počtu a součet nejlepších hvězd z maxima kampaně, i při nulovém postupu. |
+| Statistiky | Z hlavního menu zobrazí počet různých dokončených úrovní z celkového počtu a součet nejlepších hvězd z maxima kampaně pod popisky `Completed levels` / `Dokončené úrovně` a `Earned stars` / `Získané hvězdy`, i při nulovém postupu. |
 | Zablokovaná trasa | Deska zůstane viditelná pod vrstvou `Route blocked`. `Undo`, `Restart` nebo `Levels` podle §3. |
 | Nastavení | Přepínač `Sound`, přepínač jazyka `Language` / `Jazyk` s volbami `English` a `Čeština` a tlačítko `Back`. Volba jazyka se projeví okamžitě i v otevřeném nastavení a zachová herní stav. Omezený pohyb se řídí nastavením zařízení. |
 | Nápověda | Nabídne `Use hint` při volné zásobě a `Watch ad for hint` při dostupné nabídce, současně vždy `Resume`. Volba úspěšné nápovědy zavře dialog a ukáže správný magnet. |
 | Reklama čeká | Stav bez tahů a dalšího spuštění reklamy. Ukončení průběžné reklamy nebo chyba spustí požadovanou následující úroveň. |
 | Reklama nedostupná | Při neúspěchu odměňované reklamy text `Video unavailable` v dialogu Hint, dostupné `Resume` a případná bezplatná nápověda. |
 
-Výhra, závěrečný souhrn, statistiky, výběr úrovní, nastavení a pauza mají viditelný křížek vpravo nahoře s dotykovým cílem nejméně 44 × 44 CSS px a lokalizovaným přístupným názvem `Close` / `Zavřít`. Křížek zůstává dostupný i při posuvu dialogu. Tlačítko `Menu` ve všech šesti oknech otevře přímo hlavní obrazovku a zachová pokrok, rozehranou desku, počet tahů a historii Undo, také při nedostupném lokálním úložišti.
+Výhra, závěrečný souhrn, statistiky, výběr úrovní, nastavení a pauza mají viditelný křížek vpravo nahoře s dotykovým cílem nejméně 44 × 44 CSS px a lokalizovaným přístupným názvem `Close` / `Zavřít`. Křížek zůstává dostupný i při posuvu dialogu. Tlačítko `Menu` ve všech šesti oknech otevře přímo hlavní obrazovku a zachová pokrok, rozehranou desku, počet tahů a historii Undo, také při nedostupném lokálním úložišti. Fokus přejde na hlavní akci `Play` nebo `Continue`.
 
 Escape a klepnutí na pozadí dialogu odpovídají křížku, pokud lze zavřít okno bez ztráty rozehrané hry. Z pauzy pokračují na stejné desce, z výběru, nastavení a statistik obnoví výchozí obrazovku a její fokus a z výhry či závěrečného souhrnu otevřou menu. Zavření ani Menu nevyžaduje reklamu. Klepnutí uvnitř dialogu a dotyk, který začne uvnitř a skončí vně, okno nezavírají.
 
