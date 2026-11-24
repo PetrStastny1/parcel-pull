@@ -1,4 +1,7 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
-// GitHub Pages serves the build under /parcel-pull/; dev and e2e keep the root path.
-export default defineConfig(({ command }) => ({ base: command === 'build' ? '/parcel-pull/' : './' }))
+export default defineConfig(({ command, isPreview, mode }) => {
+  const platform = loadEnv(mode, process.cwd(), 'VITE_PLATFORM').VITE_PLATFORM
+  const portalBuild = platform === 'crazygames' || platform === 'poki'
+  return { base: (command === 'build' || isPreview) && !portalBuild ? '/parcel-pull/' : './' }
+})

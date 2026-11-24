@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
 
 const samples = [
   { label: 'Czech locale', locale: 'cs-CZ', lang: 'cs', play: 'Hrát' },
@@ -7,13 +7,14 @@ const samples = [
 ] as const
 
 for (const sample of samples) {
-  test(`selects the language for a ${sample.label}`, async ({ browser }) => {
-    const context = await browser.newContext({ locale: sample.locale })
-    const page = await context.newPage()
-    await page.goto('/')
-    await expect(page.locator('html')).toHaveAttribute('lang', sample.lang)
-    await expect(page.getByRole('button', { name: sample.play })).toBeVisible()
-    await context.close()
+  test.describe(sample.label, () => {
+    test.use({ locale: sample.locale })
+
+    test(`selects the language for a ${sample.label}`, async ({ page }) => {
+      await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('lang', sample.lang)
+      await expect(page.getByRole('button', { name: sample.play })).toBeVisible()
+    })
   })
 }
 

@@ -26,4 +26,4 @@ npm run build
 npm run test:e2e
 ```
 
-Playwright starts its own Vite server. Use `E2E_PORT` to select another port. To regenerate the reachability tables, run `node tools/solver/generate.ts`. To reproduce the three advanced board selections, run `node tools/solver/generate-hard.ts`.
+Playwright starts a dedicated Vite server on port 43273. Use `E2E_PORT` to select another port. In environments where Chromium must run in a single process, set `PARCEL_TEST_SINGLE_PROCESS=1` to isolate each test's browser while retaining parallel workers. To regenerate the reachability tables, run `node tools/solver/generate.ts`. To reproduce the three advanced board selections, run `node tools/solver/generate-hard.ts`.
