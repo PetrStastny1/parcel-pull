@@ -359,6 +359,13 @@ for (const { locale, copy, outcome, viewport } of [
       await action(page, copy.hint).click()
       await expect(video).toHaveCount(0)
       await expect(action(page, copy.useHint)).toBeVisible()
+
+      await resume.click()
+      await pull(page, firstSix[5])
+      await action(page, copy.replay).click()
+      await action(page, copy.hint).click()
+      await expect(video).toHaveCount(0)
+      await expect(action(page, copy.useHint)).toBeVisible()
       await action(page, copy.useHint).click()
       await expect(page.locator(recommendation)).toHaveCount(1)
       expect((await collected(page)).events.filter(({ type }) => type === 'hint_use')).toEqual([
