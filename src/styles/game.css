@@ -176,7 +176,7 @@ button:focus-visible, select:focus-visible {
 .action:hover:enabled { filter: brightness(.93); }
 .action:disabled { opacity: .54; }
 .primary { background: var(--accent); color: var(--accent-contrast); }
-@media (max-width: 720px) and (orientation: portrait), (max-width: 720px) and (min-height: 521px) {
+@media (max-width: 720px) and (orientation: portrait), (max-width: 499px) {
   .game {
     grid-template-columns: 1fr;
     grid-template-areas: 'header' 'stage' 'controls';
@@ -201,7 +201,8 @@ button:focus-visible, select:focus-visible {
 @media (max-width: 359px) and (orientation: portrait) {
   .stage { min-height: 266px; margin-inline: 0; }
 }
-@media (max-height: 520px) and (orientation: landscape) {
+@media (max-height: 520px) and (orientation: landscape) and (min-width: 500px),
+  (500px <= width <= 720px) and (orientation: landscape) {
   .game {
     grid-template-columns: minmax(0, 1fr) minmax(172px, 29%);
     grid-template-areas: 'header header' 'stage controls';

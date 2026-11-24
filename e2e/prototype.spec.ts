@@ -242,6 +242,10 @@ test.describe('Czech compact layout', () => {
       expect(stage).not.toBeNull()
       expect(board).not.toBeNull()
       if (stage && board) expect(board.x + board.width).toBeLessThanOrEqual(stage.x + stage.width)
+      if (viewport.width > viewport.height) {
+        const controls = await page.locator('.controls').boundingBox()
+        expect(controls?.x).toBeGreaterThan(stage?.x ?? 0)
+      }
     }
   })
 })
