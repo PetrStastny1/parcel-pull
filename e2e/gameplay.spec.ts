@@ -218,7 +218,7 @@ test('pairs gameplay lifecycle and emits level events through blocking, undo and
   await expect(page.getByRole('heading', { name: en.routeBlocked })).toBeVisible()
   expect((await collected(page)).events).toContainEqual({ type: 'level_blocked', level: 3, moves: 2 })
   const signalsBeforeUndo = (await collected(page)).signals
-  await action(page, en.undo).click()
+  await page.getByRole('dialog', { name: en.routeBlocked }).getByRole('button', { name: en.undo, exact: true }).click()
   await expect(page.getByRole('heading', { name: en.routeBlocked })).toHaveCount(0)
   expect((await collected(page)).signals).toEqual([...signalsBeforeUndo, 'gameplayStart'])
   await setHidden(page, true)
@@ -440,7 +440,7 @@ test('keeps the blocked screen intact while Undo waits for its storage lock', as
     }))
   }), progressKey)
   try {
-    await action(page, en.undo).click()
+    await page.getByRole('dialog', { name: en.routeBlocked }).getByRole('button', { name: en.undo, exact: true }).click()
     const levelsButton = action(page, en.levels)
     if (await levelsButton.isEnabled()) await levelsButton.click()
     await page.keyboard.press('Escape')
