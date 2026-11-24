@@ -1,8 +1,11 @@
-import { parcels } from './logic/game.ts'
+import { isWon, parcels } from './logic/game.ts'
 import type { Level, Positions } from './logic/game.ts'
 import type { Language } from '../i18n/index.ts'
 
 type Result = { moves: number; stars: number }
+export type ProgressChange = Partial<Pick<Progress, 'sound' | 'language' | 'run'>> & {
+  result?: { level: number; moves: number; stars: number }
+}
 export type SavedRun = { level: number; positions: Positions; history: Positions[]; won: boolean }
 export type Progress = {
   version: 1
@@ -69,14 +72,24 @@ export function readProgress(levels: readonly Level[]) {
     const run = saved.run
     const level = levels.find((board) => board.id === run.level)
     if (level && level.id <= unlockedLevel(progress, levels.length) && validPositions(run.positions, level) &&
-      typeof run.won === 'boolean' && Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
+      run.won === isWon(run.positions) && Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
       progress.run = { level: level.id, positions: run.positions, history: run.history, won: run.won }
     }
   }
   return { progress, available: true }
 }
 
-export function writeProgress(progress: Progress) {
+export function writeProgress(levels: readonly Level[], { result, ...change }: ProgressChange) {
+  const latest = readProgress(levels)
+  if (!latest.available) return false
+  const progress = { ...latest.progress, ...change }
+  if (result) {
+    const best = progress.results[result.level]
+    progress.results[result.level] = {
+      moves: Math.min(result.moves, best?.moves ?? result.moves),
+      stars: Math.max(result.stars, best?.stars ?? result.stars),
+    }
+  }
   try {
     localStorage.setItem(key, JSON.stringify(progress))
     return true

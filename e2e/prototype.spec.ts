@@ -57,6 +57,11 @@ test('plays all twelve published solutions and persists completion and stars', a
   await start(page)
   for (const [index, route] of routes.entries()) {
     await expect(moves(page, 0)).toBeVisible()
+    if (index === 5) {
+      await expect(page.getByRole('group', { name: 'Board' })).toHaveAccessibleDescription(
+        '4 columns, 3 rows. Wall at column 2, row 2.',
+      )
+    }
     await pull(page, route)
 
     const lastLevel = index === routes.length - 1
@@ -209,5 +214,34 @@ test.describe('animated input', () => {
     ))).toBe(false)
     await dock.click()
     await expect(page.getByRole('heading', { name: 'Level 1 complete' })).toBeVisible()
+  })
+})
+
+test.describe('Czech compact layout', () => {
+  test.use({ locale: 'cs-CZ' })
+
+  test('fits Czech actions on the first and largest boards at both minimum sizes', async ({ page }) => {
+    const viewports = [{ width: 320, height: 480 }, { width: 568, height: 320 }]
+    await page.setViewportSize(viewports[0])
+    await page.goto('/')
+    await action(page, 'Hrát').click()
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport)
+      await checkFit(page)
+    }
+    for (const route of routes.slice(0, 11)) {
+      await pull(page, route)
+      await action(page, 'Další úroveň').click()
+    }
+    await expect(page.locator('.level-label')).toHaveText('Úroveň 12')
+    for (const viewport of [...viewports, { width: 568, height: 521 }, { width: 620, height: 540 }]) {
+      await page.setViewportSize(viewport)
+      await checkFit(page)
+      const stage = await page.locator('.stage').boundingBox()
+      const board = await page.locator('.board').boundingBox()
+      expect(stage).not.toBeNull()
+      expect(board).not.toBeNull()
+      if (stage && board) expect(board.x + board.width).toBeLessThanOrEqual(stage.x + stage.width)
+    }
   })
 })

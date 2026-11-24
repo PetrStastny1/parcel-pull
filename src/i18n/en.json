@@ -36,5 +36,8 @@
   "restored": "Board restored",
   "objective": "Use the edge magnets to pull parcels into their matching docks.",
   "languageEnglish": "English",
-  "languageCzech": "Čeština"
+  "languageCzech": "Čeština",
+  "board": "Board",
+  "boardSize": "{columns} columns, {rows} rows.",
+  "wallPosition": "Wall at column {column}, row {row}."
 }

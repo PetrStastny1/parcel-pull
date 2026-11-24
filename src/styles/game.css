@@ -176,7 +176,7 @@ button:focus-visible, select:focus-visible {
 .action:hover:enabled { filter: brightness(.93); }
 .action:disabled { opacity: .54; }
 .primary { background: var(--accent); color: var(--accent-contrast); }
-@media (max-width: 720px) and (orientation: portrait) {
+@media (max-width: 720px) and (orientation: portrait), (max-width: 720px) and (min-height: 521px) {
   .game {
     grid-template-columns: 1fr;
     grid-template-areas: 'header' 'stage' 'controls';
@@ -185,7 +185,17 @@ button:focus-visible, select:focus-visible {
   }
   .game-header { padding: 0 var(--space-3); }
   .stage { min-height: 300px; margin: 0 var(--space-2); }
-  .controls { margin: 0 var(--space-2); padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+  .controls {
+    margin: 0 var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .remaining { text-align: right; }
+  .game-actions { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .game-actions .action { padding-inline: var(--space-1); }
   .objective { display: none; }
 }
 @media (max-width: 359px) and (orientation: portrait) {
@@ -198,7 +208,7 @@ button:focus-visible, select:focus-visible {
     gap: var(--space-1) var(--space-2);
     padding: 0 var(--space-2);
   }
-  .stage { --cell: clamp(44px, 10svh, 52px); min-height: 268px; }
+  .stage { --cell: clamp(44px, min(10svh, (100vw - 204px) / 7), 52px); min-height: 268px; }
   .controls { padding: var(--space-2); gap: var(--space-2); }
   .objective { display: none; }
 }
@@ -240,7 +250,8 @@ button:focus-visible, select:focus-visible {
   background: var(--magnet-bg);
   color: var(--label);
 }
-.setting-row input { width: var(--hit-target); height: var(--hit-target); margin: 0; accent-color: var(--accent); }
+.setting-row:has(input) { cursor: pointer; }
+.setting-row input { width: var(--space-5); height: var(--space-5); margin: 0 var(--space-3); accent-color: var(--accent); }
 .level-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
 .level-grid button { min-width: 0; padding-inline: var(--space-1); }
 .rating { color: var(--star); font-size: var(--text-title-2); font-variant-numeric: tabular-nums; }
@@ -248,4 +259,11 @@ button:focus-visible, select:focus-visible {
 .empty-stars { color: var(--star-empty); }
 @media (max-height: 380px) {
   .game-dialog { padding: var(--space-4); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .game-dialog[data-screen='won'] { animation: result-in 240ms ease-out both; }
+}
+@keyframes result-in {
+  from { transform: translateY(var(--space-2)); opacity: 0; }
 }

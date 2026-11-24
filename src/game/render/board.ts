@@ -38,6 +38,12 @@ function magnetPosition(magnet: Magnet, level: Level): [number, number] {
 export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
   const element = document.createElement('div')
   element.className = 'board'
+  element.setAttribute('role', 'group')
+  element.setAttribute('aria-describedby', 'board-layout')
+  const layout = document.createElement('p')
+  layout.id = 'board-layout'
+  layout.className = 'sr-only'
+  element.append(layout)
   element.style.setProperty('--columns', String(level.width + 2))
   element.style.setProperty('--rows', String(level.height + 2))
   const bed = tile(1, 1, 'board-bed')
@@ -99,6 +105,13 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
   })) as Record<Parcel, HTMLDivElement>
 
   const describe = (copy: Copy, positions: Positions) => {
+    element.setAttribute('aria-label', copy('board'))
+    layout.textContent = [
+      copy('boardSize', { columns: level.width, rows: level.height }),
+      ...Array.from(level.walls, (index) => copy('wallPosition', {
+        column: index % level.width + 1, row: Math.floor(index / level.width) + 1,
+      })),
+    ].join(' ')
     for (const [magnet, button] of magnets) {
       button.setAttribute('aria-label', copy(magnet.parcel ? 'dock' : 'magnet', {
         side: copy(sides[magnet.side]), index: magnet.index + 1, parcel: magnet.parcel ?? '',

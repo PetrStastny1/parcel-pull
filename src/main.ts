@@ -4,6 +4,7 @@ import type { Magnet, Positions } from './game/logic/game.ts'
 import { createBoard } from './game/render/board.ts'
 import type { Copy } from './game/render/board.ts'
 import { readProgress, unlockedLevel, writeProgress } from './game/storage.ts'
+import type { ProgressChange } from './game/storage.ts'
 import { browserLanguage, translate } from './i18n/index.ts'
 import type { MessageKey } from './i18n/index.ts'
 import { levels } from './levels/index.ts'
@@ -67,8 +68,8 @@ function freshRun(id: number) {
   return { level: id, positions: levels[id - 1].initial, history: [] as Positions[], won: false }
 }
 
-function save() {
-  storageAvailable = writeProgress(progress)
+function save(change: ProgressChange) {
+  storageAvailable = writeProgress(levels, change)
 }
 
 function updateCopy() {
@@ -125,6 +126,7 @@ function renderDialog(focus = true) {
     menu: 'title', pause: 'pause', settings: 'settings', levels: 'levels', blocked: 'routeBlocked',
     won: level.id === maximum ? 'gameWon' : 'levelWon',
   }
+  dialog.dataset.screen = screen
   const { details, actions: buttons } = dialogContent(dialog, copy, screenTitle[screen], { count: level.id })
   const add = (key: MessageKey, handler: () => void, primary = false) => {
     const button = actionButton(copy(key), handler, primary)
@@ -160,12 +162,12 @@ function renderDialog(focus = true) {
       progress.sound = sound.checked
       audio.unlock()
       audio.update(progress.sound, !document.hidden)
-      save()
+      save({ sound: progress.sound })
     })
     const select = languageSelect(language, copy, (selected) => {
       language = selected
       progress.language = selected
-      save()
+      save({ language })
       updateCopy()
       refreshBoard()
       renderDialog(false)
@@ -263,7 +265,7 @@ function enter(id: number, reset = false) {
   level = levels[id - 1]
   run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(id)
   progress.run = run
-  save()
+  save({ run })
   board = createBoard(level, activate)
   stage.replaceChildren(board.element)
   updateCopy()
@@ -339,7 +341,7 @@ function activate(magnet: Magnet) {
   } else {
     cancelTutorial()
   }
-  save()
+  save(run.won ? { run, result: { level: level.id, ...progress.results[level.id] } } : { run })
   audio.play(delivered ? 'delivery' : 'move')
   const announcement = [moved ? copy('moved', { count: moved }) : '', delivered ? copy('delivered', { count: delivered }) : '']
     .filter(Boolean).join(' ')
@@ -351,7 +353,7 @@ function restore(positions: Positions, animate: boolean) {
   const previous = run.positions
   run.positions = positions
   run.won = false
-  save()
+  save({ run })
   if (screen === 'blocked') {
     dialogReturnFocus = undefined
     resume()
