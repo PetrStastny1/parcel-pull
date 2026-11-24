@@ -13,6 +13,8 @@ import './styles/tokens.css'
 import './styles/game.css'
 
 type Screen = 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'blocked' | 'won'
+type LevelPickerSource = Extract<Screen, 'menu' | 'pause' | 'blocked' | 'won'>
+
 const app = document.querySelector<HTMLElement>('#app')
 if (!app) throw new Error('Missing game mount')
 
@@ -27,7 +29,7 @@ const maximum = levels.length
 let run = progress.run ?? freshRun(1)
 let level = levels[run.level - 1]
 let screen: Screen = 'menu'
-let returnTo: 'menu' | 'pause' = 'menu'
+let returnTo: LevelPickerSource = 'menu'
 let dialogReturnFocus: HTMLElement | undefined
 let animationTimer: number | undefined
 let pendingScreen: 'won' | 'blocked' | undefined
@@ -199,7 +201,7 @@ function renderDialog(focus = true) {
   if (screen === 'blocked') {
     add('undo', undo, true)
     add('restart', restart)
-    add('levels', () => openLevels('menu'))
+    add('levels', () => openLevels('blocked'))
   }
 
   if (screen === 'won') {
@@ -213,14 +215,14 @@ function renderDialog(focus = true) {
     details.append(result)
     if (!final) add('next', () => enter(level.id + 1, true), true)
     add('replay', () => enter(level.id, true), final)
-    add('levels', () => openLevels('menu'))
+    add('levels', () => openLevels('won'))
   }
 
   if (!dialog.open) dialog.showModal()
   if (focus) dialog.querySelector<HTMLButtonElement>('.primary, .level-grid button:enabled, .dialog-actions button')?.focus()
 }
 
-function openLevels(from: 'menu' | 'pause') {
+function openLevels(from: LevelPickerSource) {
   returnTo = from
   screen = 'levels'
   renderDialog()

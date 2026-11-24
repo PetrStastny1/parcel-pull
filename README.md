@@ -1,6 +1,6 @@
 # Parcel Pull
 
-A bilingual browser puzzle with twelve levels. Activate an edge magnet to pull parcels one cell toward it. A parcel leaves the board when its matching dock pulls it from the edge.
+A bilingual browser puzzle with fifteen levels. Activate an edge magnet to pull parcels one cell toward it. A parcel leaves the board when its matching dock pulls it from the edge.
 
 ## Run locally
 
@@ -26,4 +26,4 @@ npm run build
 npm run test:e2e
 ```
 
-Playwright starts its own Vite server. Use `E2E_PORT` to select another port. To regenerate the reachability tables, run `node tools/solver/generate.ts`.
+Playwright starts its own Vite server. Use `E2E_PORT` to select another port. To regenerate the reachability tables, run `node tools/solver/generate.ts`. To reproduce the three advanced board selections, run `node tools/solver/generate-hard.ts`.

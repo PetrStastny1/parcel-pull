@@ -14,6 +14,9 @@ const routes = [
   'S4 S4 W4 W4 N1A W4 N1A N1A E2 N2B N2B W1C',
   'S3 E3 E3 W4B S3 W4B N1A S3 W4B W4B N1A N1A N1A W1C',
   'W2 W2 N1C N1C E1 N3A E1 E1 S4 S4 S4 W4B W4B W4B W4B',
+  'N1C W1 W1 W1 N1C E1B N1C E1B E1B E1B S5 E1B E1B N5 W1 W1 W1 W1 S1A S1A S1A S1A',
+  'N1C W4 W4 W4 W4 N1C N1C E1 N1C N1C W1 S1A W1 S1A S1A E4B E4B E4B E4B E4B S1A S1A',
+  'N2A N2A N2A E1 S5 E1 S5 E1 S5 W4C S5 W4C S5 W4C W4C N2A N2A N2A N2A S3B W4C',
 ]
 
 test.use({ locale: 'en-US', reducedMotion: 'reduce' })
@@ -53,7 +56,7 @@ async function checkFit(page: Page) {
   }
 }
 
-test('plays all twelve published solutions and persists completion and stars', async ({ page }) => {
+test('plays all fifteen solutions and persists completion and stars', async ({ page }) => {
   await start(page)
   for (const [index, route] of routes.entries()) {
     await expect(moves(page, 0)).toBeVisible()
@@ -67,17 +70,54 @@ test('plays all twelve published solutions and persists completion and stars', a
     const lastLevel = index === routes.length - 1
     const result = lastLevel ? 'All levels complete' : `Level ${index + 1} complete`
     await expect(page.getByRole('heading', { name: result, exact: true })).toBeVisible()
-    if (!lastLevel) await action(page, 'Next level').click()
+    if (index === 11) {
+      await expect(action(page, 'Next level')).toBeVisible()
+      await page.reload()
+      await action(page, 'Continue').click()
+      await expect(page.locator('.level-label')).toHaveText('Level 13')
+    } else if (!lastLevel) {
+      await action(page, 'Next level').click()
+    }
   }
   await expect(action(page, 'Replay')).toBeVisible()
   await expect(action(page, 'Next level')).toHaveCount(0)
+  await expect(page.getByRole('img', { name: 'Stars: 45' })).toBeVisible()
+  await action(page, 'Levels').click()
+  await action(page, 'Back').click()
+  await expect(page.getByRole('heading', { name: 'All levels complete' })).toBeVisible()
 
   await page.reload()
   await action(page, 'Levels').click()
   for (let level = 1; level <= routes.length; level += 1) {
     await expect(action(page, `Level ${level}, stars: 3`)).toBeEnabled()
   }
-  await expect(page.getByRole('button', { name: /Level 13/ })).toHaveCount(0)
+  await expect(page.locator('button[data-level]')).toHaveCount(15)
+})
+
+test('returns to the same victory after closing the level picker', async ({ page }) => {
+  await start(page)
+  await pull(page, routes[0])
+  const victory = page.getByRole('heading', { name: 'Level 1 complete' })
+  const picker = action(page, 'Levels')
+
+  await picker.click()
+  await action(page, 'Back').click()
+  await expect(victory).toBeVisible()
+  await expect(picker).toBeFocused()
+  await expect(moves(page, 2)).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Stars: 3' })).toBeVisible()
+
+  await picker.click()
+  await page.keyboard.press('Escape')
+  await expect(victory).toBeVisible()
+  await expect(picker).toBeFocused()
+
+  await picker.click()
+  await action(page, 'Level 1, stars: 3').click()
+  await expect(victory).toBeHidden()
+  await expect(moves(page, 0)).toBeVisible()
+  await pull(page, routes[0])
+  await expect(victory).toBeVisible()
 })
 
 test('unlocks the next level and starts it through the level picker', async ({ page }) => {
@@ -85,6 +125,10 @@ test('unlocks the next level and starts it through the level picker', async ({ p
   await action(page, 'Pause').click()
   await action(page, 'Levels').click()
   await expect(action(page, 'Level 2, locked')).toBeDisabled()
+  await action(page, 'Back').click()
+  await expect(action(page, 'Resume')).toBeVisible()
+  await expect(action(page, 'Levels')).toBeFocused()
+  await action(page, 'Levels').click()
   await action(page, 'Level 1, stars: 0').click()
   await pull(page, routes[0])
   await action(page, 'Levels').click()
@@ -119,6 +163,10 @@ test('restores the third board, detects the blocked route, and accepts Undo and 
   await expect(blocked).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(blocked).toBeVisible()
+  await action(page, 'Levels').click()
+  await action(page, 'Back').click()
+  await expect(blocked).toBeVisible()
+  await expect(action(page, 'Levels')).toBeFocused()
   await page.getByRole('dialog').getByRole('button', { name: 'Undo', exact: true }).click()
   await expect(blocked).toBeHidden()
   await expect(parcelB).toHaveCSS('--row', '3')

@@ -81,3 +81,15 @@ Dočasná kontrola generátoru použila přesné seedy a filtry z §5. Každou f
 | 29–40 | 172723 | 12 | 12978 |
 
 Vzorek ověřuje, že kombinace pravidel a limitů může dát 28 dalších řešitelných desek. Finální výběr a ladění obtížnosti zůstávají součástí stavby.
+
+## Obtížné úrovně 13–15
+
+Pro rozšíření prototypu se vybraly desky s nejvyšším minimem z nejtěžší fáze. Při shodě rozhodlo pořadí přijetí. Ze standardních 50 000 pokusů pro seed 172723 vyšla jedna deska s minimem alespoň 20 tahů. Po pokračování téhož proudu do 250 000 pokusů prošlo všemi filtry 150 unikátních kandidátů, z nich 17 s minimem alespoň 20 tahů.
+
+| Úroveň | Pokus | Minimum tahů | Počet nejkratších řešení |
+|---|---:|---:|---:|
+| 13 | 28 061 | 22 | 4 |
+| 14 | 234 011 | 22 | 20 |
+| 15 | 51 188 | 21 | 29 |
+
+Výběr včetně konkrétních řešení vypíše `node tools/solver/generate-hard.ts`. Tabulky dosažitelných stavů pro hru vytváří `node tools/solver/generate.ts`.

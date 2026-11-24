@@ -3,16 +3,20 @@ import { test } from 'node:test'
 import { boards, parseBoard } from '../../src/levels/boards.ts'
 import { levels } from '../../src/levels/index.ts'
 import distances from '../../src/levels/distances.json' with { type: 'json' }
-import { solve } from './solve.ts'
+import { shortestRoute, solve } from './solve.ts'
 
 const prototypeResults = [
   [2, 1], [3, 1], [6, 3], [7, 1], [8, 1], [9, 3],
   [11, 8], [10, 4], [11, 1], [12, 3], [14, 6], [15, 1],
+  [22, 4], [22, 20], [21, 29],
 ]
 
 test('all manifest entries match the prototype minima and exact shortest solution counts', () => {
   equal(boards.length, prototypeResults.length)
   for (const [index, board] of boards.entries()) {
+    if (index >= 12) {
+      equal(shortestRoute(board, 19), undefined, `Level ${board.id} must need at least 20 moves`)
+    }
     const result = solve(board)
     deepStrictEqual([result.minimum, result.shortestSolutions], prototypeResults[index], `Level ${board.id}`)
     equal(levels[index].minimum, result.minimum)
