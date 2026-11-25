@@ -35,11 +35,11 @@ export function createTitleScreen() {
     return item
   }
 
-  function render(copy: Copy, completed: number, levels: number, stars: number, message: string) {
+  function render(copy: Copy, completed: number, levelCount: number, stars: number, message: string) {
     logo.textContent = copy('title')
-    const starsEntry = entry(copy('earnedStars'), `★ ${stars} / ${levels * 3}`)
+    const starsEntry = entry(copy('earnedStars'), `★ ${stars} / ${levelCount * 3}`)
     starsEntry.className = 'title-stars'
-    progress.replaceChildren(entry(copy('completedLevels'), `${completed} / ${levels}`), starsEntry)
+    progress.replaceChildren(entry(copy('completedLevels'), `${completed} / ${levelCount}`), starsEntry)
     notice.textContent = message
     notice.hidden = !message
     actions.replaceChildren()

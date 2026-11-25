@@ -396,7 +396,8 @@ button:focus-visible, select:focus-visible {
 .title-actions .primary { grid-column: 1 / -1; min-height: 56px; font-size: var(--text-title-3); }
 @media (max-height: 520px) and (orientation: landscape) {
   .title-screen {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+    grid-template-columns: auto minmax(0, 320px);
+    justify-content: center;
     align-items: center;
     column-gap: var(--space-6);
     padding: var(--space-3) var(--space-4);

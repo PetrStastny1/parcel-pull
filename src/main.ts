@@ -43,6 +43,7 @@ let level = levels[run.level - 1]
 let screen: Screen = 'loading'
 let onTitle = true
 let returnTo: LevelPickerSource = 'menu'
+let returnAction: MessageKey = 'levels'
 let dialogReturnFocus: HTMLElement | undefined
 let animationTimer: number | undefined
 let pendingScreen: 'won' | 'blocked' | undefined
@@ -351,10 +352,12 @@ function renderTitle(focus: boolean) {
 function renderDialog(focus = true) {
   title.element.hidden = !onTitle
   game.hidden = onTitle
-  const dialogless = screen === 'game' || screen === 'menu' || screen === 'loading'
-  if (dialogless && dialog.open) dialog.close()
-  if (onTitle) renderTitle(focus && dialogless)
-  if (screen === 'game' || screen === 'menu' || screen === 'loading') return
+  if (screen === 'game' || screen === 'menu' || screen === 'loading') {
+    if (dialog.open) dialog.close()
+    if (onTitle) renderTitle(focus)
+    return
+  }
+  if (onTitle) renderTitle(false)
   const results = Object.values(progress.results)
   const earnedStars = results.reduce((sum, result) => sum + result.stars, 0)
   const final = results.length === maximum && (level.id === maximum || campaignJustCompleted)
@@ -484,20 +487,22 @@ function openMenu() {
   renderDialog()
 }
 
-function openLevels(from: LevelPickerSource) {
+function openLevels(from: LevelPickerSource, opener: MessageKey = 'levels') {
   returnTo = from
+  returnAction = opener
   screen = 'levels'
   renderDialog()
 }
 
 function openSettings(from: 'menu' | 'pause') {
   returnTo = from
+  returnAction = 'settings'
   screen = 'settings'
   renderDialog()
 }
 
 function back() {
-  const action = screen
+  const action = returnAction
   screen = returnTo
   renderDialog(false)
   const source = onTitle && screen === 'menu' ? title.element : dialog
@@ -570,7 +575,7 @@ function continueGame() {
   }
   const first = levels.find((candidate) => !progress.results[candidate.id])
   if (first) enter(first.id)
-  else openLevels('menu')
+  else openLevels('menu', 'continue')
 }
 
 function finishAnimation(playWin = true) {

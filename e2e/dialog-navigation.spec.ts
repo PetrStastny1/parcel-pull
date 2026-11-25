@@ -157,6 +157,9 @@ for (const { locale, labels, viewport, method } of cases) {
       expect(await adRequests(page)).toBe(0)
 
       await checkProgress(page, labels, 40, 120)
+      await button(page, labels.continue).click()
+      await dismiss(page, labels, 'close')
+      await expect(button(page, labels.continue)).toBeFocused()
 
       await button(page, labels.levels).click()
       await page.locator('[data-level="1"]').click()
