@@ -56,6 +56,8 @@ try {
     await page.getByRole('button', { name: 'Next level', exact: true }).click()
   }
 
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await page.getByText('Level 12', { exact: true }).waitFor()
   const route = shortestRoute(levels[11])
   if (!route || route.minimum < 10) throw new Error('Expected at least ten moves in the measurement level')
   const magnets = route.moves.slice(0, 10).map(({ magnet }) => magnet.id)
@@ -66,14 +68,23 @@ try {
     const longTasks = []
     const observer = new PerformanceObserver((list) => longTasks.push(...list.getEntries().map(({ duration }) => duration)))
     observer.observe({ entryTypes: ['longtask'] })
+    const parcels = [...document.querySelectorAll('.parcel')]
     for (const magnet of magnets) {
-      await new Promise((finish) => requestAnimationFrame((start) => {
+      await new Promise((finish, reject) => requestAnimationFrame((start) => {
         document.querySelector(`button[data-magnet="${magnet}"]`).click()
-        let previous = start
+        let previous
         function frame(now) {
-          intervals.push(now - previous)
-          previous = now
-          if (now - start >= 160) finish()
+          const moving = parcels.some((parcel) => parcel.getAnimations().some(
+            (animation) => animation.effect?.getTiming().duration === 160 && animation.playState === 'running',
+          ))
+          if (previous !== undefined) intervals.push(now - previous)
+          if (moving) {
+            previous = now
+          } else if (previous !== undefined) {
+            finish()
+            return
+          }
+          if (now - start >= 2000) reject(new Error(`No complete movement animation for ${magnet}`))
           else requestAnimationFrame(frame)
         }
         requestAnimationFrame(frame)
