@@ -6,13 +6,13 @@ import { expect, test } from './fixtures.ts'
 test.use({ locale: 'en-US', reducedMotion: 'reduce', hasTouch: true })
 
 const english = {
-  close: 'Close', menu: 'Menu', statistics: 'Statistics', settings: 'Settings', pause: 'Pause',
+  close: 'Close', menu: 'Menu', settings: 'Settings', pause: 'Pause',
   levels: 'Levels', play: 'Play', continue: 'Continue', undo: 'Undo', next: 'Next level',
   won: 'Level 1 complete', summary: 'All levels complete', moves: 'Moves',
   completed: 'Completed levels', stars: 'Earned stars',
 }
 const czech: typeof english = {
-  close: 'Zavřít', menu: 'Menu', statistics: 'Statistiky', settings: 'Nastavení', pause: 'Pauza',
+  close: 'Zavřít', menu: 'Menu', settings: 'Nastavení', pause: 'Pauza',
   levels: 'Úrovně', play: 'Hrát', continue: 'Pokračovat', undo: 'Zpět o tah', next: 'Další úroveň',
   won: 'Úroveň 1 dokončena', summary: 'Všechny úrovně dokončeny', moves: 'Tahů',
   completed: 'Dokončené úrovně', stars: 'Získané hvězdy',
@@ -40,6 +40,12 @@ async function checkDialog(page: Page, labels: typeof english, name: string) {
   expect(target.height).toBeGreaterThanOrEqual(44)
   expect(target.x + target.width).toBeGreaterThanOrEqual(bounds.x + bounds.width - 26)
   expect(target.y).toBeLessThanOrEqual(bounds.y + 26)
+}
+
+async function checkProgress(page: Page, labels: typeof english, completed: number, stars: number) {
+  const progress = page.getByRole('region', { name: 'Parcel Pull' }).locator('.title-progress')
+  await expect(progress.locator('dt', { hasText: labels.completed }).locator('+ dd')).toHaveText(`${completed} / 40`)
+  await expect(progress.locator('dt', { hasText: labels.stars }).locator('+ dd')).toHaveText(`★ ${stars} / 120`)
 }
 
 async function dismiss(page: Page, labels: typeof english, method: Dismissal) {
@@ -85,15 +91,11 @@ for (const { locale, labels, viewport, method } of cases) {
   test.describe(`${locale} ${viewport.width}×${viewport.height}`, () => {
     test.use({ locale, viewport })
 
-    test('keeps navigation accessible on all six dialogs and closes results without ads', async ({ page }) => {
+    test('keeps navigation accessible on all five dialogs and closes results without ads', async ({ page }) => {
       await trackAds(page)
       await page.goto('/')
-      await button(page, labels.statistics).click()
-      await checkDialog(page, labels, labels.statistics)
-      await expect(page.getByText(`${labels.completed}: 0 / 40`, { exact: true })).toBeVisible()
-      await expect(page.getByText(`${labels.stars}: 0 / 120`, { exact: true })).toBeVisible()
-      await dismiss(page, labels, 'close')
-      await expect(button(page, labels.statistics)).toBeFocused()
+      await checkProgress(page, labels, 0, 0)
+      await expect(button(page, labels.play)).toBeFocused()
 
       await button(page, labels.play).click()
       await magnet(page, 'W1A').click()
@@ -137,11 +139,7 @@ for (const { locale, labels, viewport, method } of cases) {
       await expect(button(page, labels.continue)).toBeFocused()
       expect(await adRequests(page)).toBe(0)
 
-      await button(page, labels.statistics).click()
-      await expect(page.getByText(`${labels.completed}: 1 / 40`, { exact: true })).toBeVisible()
-      await expect(page.getByText(`${labels.stars}: 3 / 120`, { exact: true })).toBeVisible()
-      await dismiss(page, labels, 'menu')
-      await expect(button(page, labels.continue)).toBeFocused()
+      await checkProgress(page, labels, 1, 3)
 
       const finalLevel = levels[levels.length - 1]
       const route = shortestRoute(finalLevel)
@@ -158,11 +156,11 @@ for (const { locale, labels, viewport, method } of cases) {
       await expect(button(page, labels.continue)).toBeFocused()
       expect(await adRequests(page)).toBe(0)
 
-      await button(page, labels.statistics).click()
-      await expect(page.getByText(`${labels.completed}: 40 / 40`, { exact: true })).toBeVisible()
-      await expect(page.getByText(`${labels.stars}: 120 / 120`, { exact: true })).toBeVisible()
+      await checkProgress(page, labels, 40, 120)
+      await button(page, labels.continue).click()
+      await dismiss(page, labels, 'close')
+      await expect(button(page, labels.continue)).toBeFocused()
 
-      await dismiss(page, labels, 'menu')
       await button(page, labels.levels).click()
       await page.locator('[data-level="1"]').click()
       for (let move = 0; move < 2; move++) await magnet(page, 'W1A').click()

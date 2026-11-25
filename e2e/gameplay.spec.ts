@@ -494,8 +494,10 @@ for (const { locale, copy } of [{ locale: 'en-US', copy: en }, { locale: 'cs-CZ'
       }, progressKey)
       await page.goto('/', { waitUntil: 'commit' })
       try {
-        await expect(page.getByRole('dialog', { name: copy.title })).toBeVisible()
-        await expect(page.getByRole('dialog').getByRole('status')).toHaveText(copy.loading)
+        const title = page.getByRole('region', { name: copy.title })
+        await expect(title).toBeVisible()
+        await expect(title.getByRole('status')).toHaveText(copy.loading)
+        await expect(title.getByRole('button')).toHaveCount(0)
       } finally {
         await page.evaluate(() => window.__parcelScenario.releaseLock?.())
       }

@@ -13,17 +13,17 @@ import { legacyLevelIds, levels } from './levels/index.ts'
 import { createPlatform } from './platform/index.ts'
 import type { AdKind, AdOutcome, Platform } from './platform/contract.ts'
 import { actionButton, dialogContent, labeledControl, languageSelect, starRating } from './ui/dialog.ts'
+import { createTitleScreen } from './ui/title.ts'
 import './styles/tokens.css'
 import './styles/game.css'
 
-type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'statistics' | 'blocked' | 'won' | 'hint' | 'ad'
+type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'blocked' | 'won' | 'hint' | 'ad'
 type LevelPickerSource = Extract<Screen, 'menu' | 'pause' | 'blocked' | 'won'>
 
 const dialogDismissals: Partial<Record<Screen, () => void>> = {
   pause: resume,
   settings: back,
   levels: back,
-  statistics: back,
   won: openMenu,
 }
 
@@ -41,7 +41,9 @@ const maximum = levels.length
 let run = progress.run ?? freshRun(levels[0])
 let level = levels[run.level - 1]
 let screen: Screen = 'loading'
+let onTitle = true
 let returnTo: LevelPickerSource = 'menu'
+let returnAction: MessageKey = 'levels'
 let dialogReturnFocus: HTMLElement | undefined
 let animationTimer: number | undefined
 let pendingScreen: 'won' | 'blocked' | undefined
@@ -94,7 +96,8 @@ const pauseButton = actionButton(copy('pause'), () => pause())
 const hintButton = actionButton(copy('hint'), openHint)
 hintButton.classList.add('game-hint')
 actions.append(undoButton, restartButton, hintButton, pauseButton)
-app.append(game, dialog)
+const title = createTitleScreen()
+app.append(title.element, game, dialog)
 let board = createBoard(level, activate)
 stage.append(board.element)
 
@@ -326,18 +329,41 @@ function tutorial(initial: boolean) {
   if (level.id === 3 && run.history.length === 0 && initial) show(['N3A', 'E3B'], 'none', short || 600, true)
 }
 
+function renderTitle(focus: boolean) {
+  const results = Object.values(progress.results)
+  const earnedStars = results.reduce((sum, result) => sum + result.stars, 0)
+  const notice = screen === 'loading' ? copy('loading') : storageAvailable ? '' : copy('progressUnavailable')
+  const buttons = title.render(copy, results.length, maximum, earnedStars, notice)
+  if (screen === 'loading') return
+  const add = (key: MessageKey, handler: () => void, primary = false) => {
+    const button = actionButton(copy(key), () => {
+      if (!updatingRun && !claimingHint) handler()
+    }, primary)
+    button.dataset.action = key
+    buttons.append(button)
+    return button
+  }
+  const play = add(progress.run || results.length > 0 ? 'continue' : 'play', continueGame, true)
+  add('levels', () => openLevels('menu'))
+  add('settings', () => openSettings('menu'))
+  if (focus) play.focus()
+}
+
 function renderDialog(focus = true) {
-  if (screen === 'game') {
+  title.element.hidden = !onTitle
+  game.hidden = onTitle
+  if (screen === 'game' || screen === 'menu' || screen === 'loading') {
     if (dialog.open) dialog.close()
+    if (onTitle) renderTitle(focus)
     return
   }
+  if (onTitle) renderTitle(false)
   const results = Object.values(progress.results)
   const earnedStars = results.reduce((sum, result) => sum + result.stars, 0)
   const final = results.length === maximum && (level.id === maximum || campaignJustCompleted)
-  const screenTitle: Record<Exclude<Screen, 'game'>, MessageKey> = {
-    loading: 'title', menu: 'title', pause: 'pause', settings: 'settings', statistics: 'statistics',
-    levels: 'levels', blocked: 'routeBlocked', won: final ? 'gameWon' : 'levelWon',
-    hint: 'hint', ad: 'adWaiting',
+  const screenTitle: Record<Exclude<Screen, 'game' | 'menu' | 'loading'>, MessageKey> = {
+    pause: 'pause', settings: 'settings', levels: 'levels', blocked: 'routeBlocked',
+    won: final ? 'gameWon' : 'levelWon', hint: 'hint', ad: 'adWaiting',
   }
   dialog.dataset.screen = screen
   const dismissible = dialogDismissals[screen] !== undefined
@@ -351,13 +377,6 @@ function renderDialog(focus = true) {
     button.dataset.action = key
     buttons.append(button)
     return button
-  }
-
-  if (screen === 'loading') {
-    const notice = document.createElement('p')
-    notice.setAttribute('role', 'status')
-    notice.textContent = copy('loading')
-    details.append(notice)
   }
 
   if (screen === 'hint') {
@@ -381,32 +400,6 @@ function renderDialog(focus = true) {
       video.prepend(icon)
     }
     add('resume', resume)
-  }
-
-  if (screen === 'menu') {
-    if (!storageAvailable) {
-      const notice = document.createElement('p')
-      notice.setAttribute('role', 'status')
-      notice.textContent = copy('progressUnavailable')
-      details.append(notice)
-    }
-    const hasProgress = progress.run || results.length > 0
-    add(hasProgress ? 'continue' : 'play', continueGame, true)
-    if (hasProgress) add('levels', () => openLevels('menu'))
-    add('settings', () => openSettings('menu'))
-    add('statistics', () => {
-      returnTo = 'menu'
-      screen = 'statistics'
-      renderDialog()
-    })
-  }
-
-  if (screen === 'statistics') {
-    const completed = document.createElement('p')
-    completed.textContent = copy('completedLevels', { count: results.length, maximum })
-    const stars = document.createElement('p')
-    stars.textContent = copy('earnedStars', { count: earnedStars, maximum: maximum * 3 })
-    details.append(completed, stars)
   }
 
   if (screen === 'pause') {
@@ -489,27 +482,31 @@ function renderDialog(focus = true) {
 
 function openMenu() {
   exitLevel()
+  onTitle = true
   screen = 'menu'
   renderDialog()
 }
 
-function openLevels(from: LevelPickerSource) {
+function openLevels(from: LevelPickerSource, opener: MessageKey = 'levels') {
   returnTo = from
+  returnAction = opener
   screen = 'levels'
   renderDialog()
 }
 
 function openSettings(from: 'menu' | 'pause') {
   returnTo = from
+  returnAction = 'settings'
   screen = 'settings'
   renderDialog()
 }
 
 function back() {
-  const action = screen
+  const action = returnAction
   screen = returnTo
   renderDialog(false)
-  dialog.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)?.focus()
+  const source = onTitle && screen === 'menu' ? title.element : dialog
+  source.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)?.focus()
 }
 
 function resume() {
@@ -559,6 +556,7 @@ async function enter(id: number, reset = false) {
   activeDuration = 0
   campaignJustCompleted = false
   updatingRun = false
+  onTitle = false
   if (!level.winning.has(positionKey(run.positions))) screen = 'blocked'
   else screen = document.hidden ? 'pause' : 'game'
   updateAudio()
@@ -577,7 +575,7 @@ function continueGame() {
   }
   const first = levels.find((candidate) => !progress.results[candidate.id])
   if (first) enter(first.id)
-  else openLevels('menu')
+  else openLevels('menu', 'continue')
 }
 
 function finishAnimation(playWin = true) {
@@ -791,6 +789,5 @@ reportCompletion()
 screen = 'menu'
 updateAudio()
 refreshBoard()
-game.hidden = false
 renderDialog()
 platform.loadingStop()

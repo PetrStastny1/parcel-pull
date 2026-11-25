@@ -239,6 +239,7 @@ test.describe('touch input', () => {
   test('discards a touch ending outside the magnet and accepts a tap', async ({ page }) => {
     await start(page)
     const dock = magnet(page, 'W1A')
+    await expect(dock).toBeVisible()
     const bounds = await dock.boundingBox()
     expect(bounds).not.toBeNull()
     if (!bounds) throw new Error('Dock is outside the viewport')
