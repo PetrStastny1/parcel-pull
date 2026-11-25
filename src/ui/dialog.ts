@@ -44,7 +44,13 @@ export function starRating(count: number, maximum: number, label: string) {
   return rating
 }
 
-export function dialogContent(dialog: HTMLDialogElement, copy: Copy, title: MessageKey, values?: Record<string, string | number>) {
+export function dialogContent(
+  dialog: HTMLDialogElement,
+  copy: Copy,
+  title: MessageKey,
+  values: Record<string, string | number>,
+  dismiss?: () => void,
+) {
   const heading = document.createElement('h1')
   heading.id = 'dialog-title'
   heading.textContent = copy(title, values)
@@ -52,6 +58,17 @@ export function dialogContent(dialog: HTMLDialogElement, copy: Copy, title: Mess
   details.className = 'dialog-details'
   const actions = document.createElement('div')
   actions.className = 'dialog-actions'
-  dialog.replaceChildren(heading, details, actions)
+  dialog.toggleAttribute('data-dismissible', dismiss !== undefined)
+  if (dismiss) {
+    const header = document.createElement('div')
+    header.className = 'dialog-header'
+    const close = actionButton('×', dismiss)
+    close.classList.add('dialog-close')
+    close.setAttribute('aria-label', copy('close'))
+    header.append(heading, close)
+    dialog.replaceChildren(header, details, actions)
+  } else {
+    dialog.replaceChildren(heading, details, actions)
+  }
   return { details, actions }
 }

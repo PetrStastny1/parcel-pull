@@ -2,7 +2,7 @@ import { GameAudio } from './game/audio.ts'
 import { parcels, positionKey, pull, stars } from './game/logic/game.ts'
 import type { Magnet, Positions } from './game/logic/game.ts'
 import { createBoard } from './game/render/board.ts'
-import type { Copy } from './game/render/board.ts'
+import type { Copy, TutorialLane } from './game/render/board.ts'
 import { freshRun, moveRun, undoRun } from './game/run.ts'
 import type { SavedRun } from './game/run.ts'
 import { applyProgressChange, canWriteProgress, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
@@ -16,8 +16,16 @@ import { actionButton, dialogContent, labeledControl, languageSelect, starRating
 import './styles/tokens.css'
 import './styles/game.css'
 
-type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'blocked' | 'won' | 'hint' | 'ad'
+type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'statistics' | 'blocked' | 'won' | 'hint' | 'ad'
 type LevelPickerSource = Extract<Screen, 'menu' | 'pause' | 'blocked' | 'won'>
+
+const dialogDismissals: Partial<Record<Screen, () => void>> = {
+  pause: resume,
+  settings: back,
+  levels: back,
+  statistics: back,
+  won: openMenu,
+}
 
 const app = document.querySelector<HTMLElement>('#app')
 if (!app) throw new Error('Missing game mount')
@@ -59,6 +67,7 @@ let hintTimer: number | undefined
 
 const game = document.createElement('section')
 game.className = 'game'
+game.hidden = true
 game.innerHTML = `<header class="game-header"><div class="brand"></div><div class="level-label"></div></header>
   <div class="stage"></div>
   <div class="controls">
@@ -296,25 +305,25 @@ function refreshBoard(previous?: Positions, magnet?: Magnet, duration?: number, 
 function cancelTutorial() {
   window.clearTimeout(tutorialTimer)
   window.clearTimeout(tutorialClear)
-  board.tutorial([], false)
+  board.tutorial([], 'none')
 }
 
 function tutorial(initial: boolean) {
   cancelTutorial()
-  const show = (ids: string[], lane: boolean, duration: number, match = false) => {
+  const show = (ids: string[], lane: TutorialLane, duration: number, match = false) => {
     board.tutorial(ids, lane, match)
-    if (duration) tutorialClear = window.setTimeout(() => board.tutorial([], false), duration)
+    if (duration) tutorialClear = window.setTimeout(() => board.tutorial([], 'none'), duration)
   }
   const short = reducedMotion.matches ? 120 : 0
-  if (level.id === 1) show(['W1A'], true, short)
+  if (level.id === 1) show(['W1A'], run.history.length === 0 ? 'full' : 'dock-edge', short)
   if (level.id === 2) {
     if (run.history.length === 0 && initial) {
-      tutorialTimer = window.setTimeout(() => show(['W1'], false, short || 600), 1500)
+      tutorialTimer = window.setTimeout(() => show(['W1'], 'none', short || 600), 1500)
     } else if (run.history.length === 1) {
-      show(['S1A'], false, short || 600)
+      show(['S1A'], 'none', short || 600)
     }
   }
-  if (level.id === 3 && run.history.length === 0 && initial) show(['N3A', 'E3B'], false, short || 600, true)
+  if (level.id === 3 && run.history.length === 0 && initial) show(['N3A', 'E3B'], 'none', short || 600, true)
 }
 
 function renderDialog(focus = true) {
@@ -322,15 +331,19 @@ function renderDialog(focus = true) {
     if (dialog.open) dialog.close()
     return
   }
-  const final = Object.keys(progress.results).length === maximum &&
-    (level.id === maximum || campaignJustCompleted)
+  const results = Object.values(progress.results)
+  const earnedStars = results.reduce((sum, result) => sum + result.stars, 0)
+  const final = results.length === maximum && (level.id === maximum || campaignJustCompleted)
   const screenTitle: Record<Exclude<Screen, 'game'>, MessageKey> = {
-    loading: 'title', menu: 'title', pause: 'pause', settings: 'settings',
+    loading: 'title', menu: 'title', pause: 'pause', settings: 'settings', statistics: 'statistics',
     levels: 'levels', blocked: 'routeBlocked', won: final ? 'gameWon' : 'levelWon',
     hint: 'hint', ad: 'adWaiting',
   }
   dialog.dataset.screen = screen
-  const { details, actions: buttons } = dialogContent(dialog, copy, screenTitle[screen], { count: level.id })
+  const dismissible = dialogDismissals[screen] !== undefined
+  const { details, actions: buttons } = dialogContent(
+    dialog, copy, screenTitle[screen], { count: level.id }, dismissible ? dismissDialog : undefined,
+  )
   const add = (key: MessageKey, handler: () => void, primary = false) => {
     const button = actionButton(copy(key), () => {
       if (!updatingRun && !claimingHint) handler()
@@ -377,10 +390,23 @@ function renderDialog(focus = true) {
       notice.textContent = copy('progressUnavailable')
       details.append(notice)
     }
-    const hasProgress = progress.run || Object.keys(progress.results).length > 0
+    const hasProgress = progress.run || results.length > 0
     add(hasProgress ? 'continue' : 'play', continueGame, true)
     if (hasProgress) add('levels', () => openLevels('menu'))
     add('settings', () => openSettings('menu'))
+    add('statistics', () => {
+      returnTo = 'menu'
+      screen = 'statistics'
+      renderDialog()
+    })
+  }
+
+  if (screen === 'statistics') {
+    const completed = document.createElement('p')
+    completed.textContent = copy('completedLevels', { count: results.length, maximum })
+    const stars = document.createElement('p')
+    stars.textContent = copy('earnedStars', { count: earnedStars, maximum: maximum * 3 })
+    details.append(completed, stars)
   }
 
   if (screen === 'pause') {
@@ -438,9 +464,7 @@ function renderDialog(focus = true) {
   }
 
   if (screen === 'won') {
-    const earned = final
-      ? Object.values(progress.results).reduce((sum, result) => sum + result.stars, 0)
-      : stars(level, run.history.length)
+    const earned = final ? earnedStars : stars(level, run.history.length)
     details.append(starRating(earned, final ? maximum * 3 : 3, copy('stars', { count: earned })))
     const result = document.createElement('p')
     result.textContent = copy('moves', { count: run.history.length })
@@ -451,6 +475,8 @@ function renderDialog(focus = true) {
     add('levels', () => openLevels('won'))
   }
 
+  if (dismissible) add('menu', openMenu)
+
   if (!dialog.open) dialog.showModal()
   if (focus) {
     const action = dialog.querySelector<HTMLElement>('.primary') ??
@@ -459,6 +485,12 @@ function renderDialog(focus = true) {
     if (target && !action) target.tabIndex = -1
     target?.focus()
   }
+}
+
+function openMenu() {
+  exitLevel()
+  screen = 'menu'
+  renderDialog()
 }
 
 function openLevels(from: LevelPickerSource) {
@@ -516,6 +548,7 @@ async function enter(id: number, reset = false) {
   level = levels[id - 1]
   run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(level)
   const saved = save({ run })
+  board.cancelDockAfterglows()
   board = createBoard(level, activate)
   stage.replaceChildren(board.element)
   updateCopy()
@@ -661,12 +694,35 @@ function restart() {
   void restore(freshRun(level), false)
 }
 
+function dismissDialog() {
+  if (!updatingRun && !claimingHint) dialogDismissals[screen]?.()
+}
+
 function escape() {
   if (updatingRun || claimingHint) return
   if (screen === 'game') pause()
-  else if (screen === 'pause' || screen === 'hint') resume()
-  else if (screen === 'settings' || screen === 'levels') back()
+  else if (screen === 'hint') resume()
+  else dismissDialog()
 }
+
+function isBackdrop(event: MouseEvent) {
+  if (event.target !== dialog) return false
+  const bounds = dialog.getBoundingClientRect()
+  return event.clientX < bounds.left || event.clientX >= bounds.right ||
+    event.clientY < bounds.top || event.clientY >= bounds.bottom
+}
+
+let pressedBackdrop = false
+dialog.addEventListener('pointerdown', (event) => {
+  pressedBackdrop = isBackdrop(event)
+})
+dialog.addEventListener('pointercancel', () => {
+  pressedBackdrop = false
+})
+dialog.addEventListener('click', (event) => {
+  if (pressedBackdrop && isBackdrop(event)) dismissDialog()
+  pressedBackdrop = false
+})
 
 dialog.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && event.repeat) event.preventDefault()
@@ -694,6 +750,7 @@ game.addEventListener('keydown', (event) => {
 
 document.addEventListener('visibilitychange', () => {
   updateAudio()
+  if (document.hidden) board.cancelDockAfterglows()
   if (!document.hidden || screen !== 'game') return
   if (updatingRun) skipMoveAnimation = true
   stopGameplay()
@@ -734,5 +791,6 @@ reportCompletion()
 screen = 'menu'
 updateAudio()
 refreshBoard()
+game.hidden = false
 renderDialog()
 platform.loadingStop()
