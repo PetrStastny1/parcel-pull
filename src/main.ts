@@ -548,6 +548,7 @@ async function enter(id: number, reset = false) {
   level = levels[id - 1]
   run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(level)
   const saved = save({ run })
+  board.cancelDockAfterglows()
   board = createBoard(level, activate)
   stage.replaceChildren(board.element)
   updateCopy()
@@ -749,6 +750,7 @@ game.addEventListener('keydown', (event) => {
 
 document.addEventListener('visibilitychange', () => {
   updateAudio()
+  if (document.hidden) board.cancelDockAfterglows()
   if (!document.hidden || screen !== 'game') return
   if (updatingRun) skipMoveAnimation = true
   stopGameplay()

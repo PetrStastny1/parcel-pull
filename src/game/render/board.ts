@@ -124,15 +124,23 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
     })).join(' ')
   }
 
+  const dockAfterglows = new Set<Animation>()
+  const cancelDockAfterglows = () => {
+    for (const animation of dockAfterglows) animation.cancel()
+    dockAfterglows.clear()
+  }
+
   let revision = 0
-  let dockAfterglow: Animation | undefined
   const show = (positions: Positions, previous?: Positions, magnet?: Magnet, duration = 0) => {
     const frame = ++revision
-    dockAfterglow?.cancel()
-    dockAfterglow = undefined
+    if (previous && !magnet) cancelDockAfterglows()
     for (const parcel of parcels) {
       const box = boxes[parcel]
-      for (const animation of box.getAnimations()) animation.cancel()
+      for (const animation of box.getAnimations()) {
+        // A new turn may replace the parcel animation just as the dock starts glowing.
+        animation.oncancel = null
+        animation.cancel()
+      }
       const next = positions[parcel]
       const old = previous?.[parcel] ?? next
       box.hidden = next < 0
@@ -149,16 +157,20 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
           { transform: 'translate(0, 0)', opacity: 1 },
           { transform: `translate(calc(var(--cell) * ${dx}), calc(var(--cell) * ${dy})) scale(.65)`, opacity: 0 },
         ], { duration, easing: 'ease-out', fill: 'forwards' })
+        const afterglow = magnets.get(magnet)?.animate([
+          { boxShadow: '0 0 0 4px var(--lane-pulse)' },
+          { boxShadow: '0 0 0 8px transparent' },
+        ], { delay: duration, duration: 120, easing: 'ease-out' })
+        if (afterglow) {
+          dockAfterglows.add(afterglow)
+          const forgetAfterglow = () => dockAfterglows.delete(afterglow)
+          afterglow.onfinish = forgetAfterglow
+          afterglow.oncancel = forgetAfterglow
+          delivery.oncancel = () => afterglow.cancel()
+        }
         delivery.onfinish = () => {
-          if (revision === frame && delivery.playState === 'finished') {
-            box.hidden = true
-            if (element.isConnected && !document.hidden) {
-              dockAfterglow = magnets.get(magnet)?.animate([
-                { boxShadow: '0 0 0 4px var(--lane-pulse)' },
-                { boxShadow: '0 0 0 8px transparent' },
-              ], { duration: 120, easing: 'ease-out' })
-            }
-          }
+          if (revision === frame && delivery.playState === 'finished') box.hidden = true
+          delivery.oncancel = null
           delivery.cancel()
         }
       } else {
@@ -210,5 +222,5 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
     return hintButton?.getAttribute('aria-label')
   }
 
-  return { element, describe, show, pulse, tutorial, highlightHint, focus: () => magnets.values().next().value?.focus() }
+  return { element, describe, show, pulse, tutorial, highlightHint, cancelDockAfterglows, focus: () => magnets.values().next().value?.focus() }
 }
