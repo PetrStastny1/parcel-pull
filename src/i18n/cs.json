@@ -3,6 +3,11 @@
   "play": "Hrát",
   "continue": "Pokračovat",
   "levels": "Úrovně",
+  "close": "Zavřít",
+  "menu": "Menu",
+  "statistics": "Statistiky",
+  "completedLevels": "Dokončené úrovně: {count} / {maximum}",
+  "earnedStars": "Získané hvězdy: {count} / {maximum}",
   "settings": "Nastavení",
   "undo": "Zpět o tah",
   "restart": "Od začátku",
@@ -39,5 +44,14 @@
   "languageCzech": "Čeština",
   "board": "Herní deska",
   "boardSize": "Počet sloupců: {columns}, počet řádků: {rows}.",
-  "wallPosition": "Zeď ve sloupci {column} a řádku {row}."
+  "wallPosition": "Zeď ve sloupci {column} a řádku {row}.",
+  "loading": "Připravujeme hru…",
+  "hint": "Nápověda",
+  "useHint": "Použít nápovědu",
+  "watchAd": "Přehrát video pro nápovědu",
+  "adWaiting": "Čekání na reklamu",
+  "videoUnavailable": "Video není dostupné",
+  "hintStock": "Zbývající nápovědy: {count}",
+  "hintedMagnet": "Doporučený magnet",
+  "hintSuggestion": "Doporučený magnet: {magnet}"
 }

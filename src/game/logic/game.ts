@@ -23,6 +23,7 @@ export type Board = {
 export type Level = Board & {
   minimum: number
   winning: ReadonlySet<string>
+  distances: Readonly<Partial<Record<string, number>>>
 }
 
 export function positionIndex({ A, B, C }: Positions): number {

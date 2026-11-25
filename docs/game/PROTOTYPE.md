@@ -93,3 +93,19 @@ Pro rozšíření prototypu se vybraly desky s nejvyšším minimem z nejtěžš
 | 15 | 51 188 | 21 | 29 |
 
 Výběr včetně konkrétních řešení vypíše `node tools/solver/generate-hard.ts`. Tabulky dosažitelných stavů pro hru vytváří `node tools/solver/generate.ts`.
+
+## Kurátorský výběr pro kampaň 40 úrovní
+
+Standardní průchody podle §5 daly 100, 99 a 34 unikátních kandidátů. První fáze skončila po 32 296 pokusech, další dvě po 50 000. Výběr má rostoucí minima od 15 do 22. V každé fázi je při stejném minimu uvedena dříve deska s více nejkratšími řešeními.
+
+| Úrovně | Seed | Vybrané pokusy v pořadí kampaně |
+|---|---:|---|
+| 13–16 | 172721 | 6152, 13454, 21810, 18249 |
+| 17–28 | 172722 | 2223, 42661, 10369, 9892, 38851, 20509, 23880, 16012, 31080, 29350, 48597, 24612 |
+| 29–40 | 172723 | 39349, 6654, 37841, 13183, 15498, 112, 48093, 3432, 41337, 51188, 234011, 28061 |
+
+V kampani jsou všechny možné posloupnosti tří doručení. Úroveň 20 střídá osu tahu čtyřikrát a využívá dlouhé tahy do krajních pruhů. Úroveň 24 mění osu třináctkrát a šestkrát posune zároveň více krabic, které zůstanou na desce. Úroveň 26 spojuje sedm společných tahů s opakovaným využitím jižního a východního okraje. Úroveň 36 používá sedm společných posunů a opakovaně se vrací k severnímu doku.
+
+Dosavadní těžké desky se přesunuly z úrovně 15 na 38, ze 14 na 39 a ze 13 na 40. Pokusy 51 188 a 234 011 pocházejí ze zdokumentovaného rozšířeného losování prototypu a v kampani mají stejnou desku i doky. Všechny tři znovu prošly filtry závěrečné fáze a kontrolou shody při otočení, zrcadlení a přejmenování symbolů.
+
+Průchod kandidátů lze zopakovat příkazem `node tools/solver/generate-campaign.ts`. Varianta `--selection` vypíše 28 vybraných desek v pořadí kampaně, včetně přesunu starých ID, nejkratších řešení a údajů o původu.

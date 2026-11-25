@@ -2,6 +2,7 @@ import type { Level, Magnet, Parcel, Positions, Side } from '../logic/game.ts'
 import type { MessageKey } from '../../i18n/index.ts'
 
 export type Copy = (key: MessageKey, values?: Record<string, string | number>) => string
+export type TutorialLane = 'none' | 'full' | 'dock-edge'
 const parcels = ['A', 'B', 'C'] as const
 const sides: Record<Side, MessageKey> = { N: 'north', E: 'east', S: 'south', W: 'west' }
 const arrows: Record<Side, string> = { N: '↑', E: '→', S: '↓', W: '←' }
@@ -123,12 +124,23 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
     })).join(' ')
   }
 
+  const dockAfterglows = new Set<Animation>()
+  const cancelDockAfterglows = () => {
+    for (const animation of dockAfterglows) animation.cancel()
+    dockAfterglows.clear()
+  }
+
   let revision = 0
   const show = (positions: Positions, previous?: Positions, magnet?: Magnet, duration = 0) => {
     const frame = ++revision
+    if (previous && !magnet) cancelDockAfterglows()
     for (const parcel of parcels) {
       const box = boxes[parcel]
-      for (const animation of box.getAnimations()) animation.cancel()
+      for (const animation of box.getAnimations()) {
+        // A new turn may replace the parcel animation just as the dock starts glowing.
+        animation.oncancel = null
+        animation.cancel()
+      }
       const next = positions[parcel]
       const old = previous?.[parcel] ?? next
       box.hidden = next < 0
@@ -145,8 +157,20 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
           { transform: 'translate(0, 0)', opacity: 1 },
           { transform: `translate(calc(var(--cell) * ${dx}), calc(var(--cell) * ${dy})) scale(.65)`, opacity: 0 },
         ], { duration, easing: 'ease-out', fill: 'forwards' })
+        const afterglow = magnets.get(magnet)?.animate([
+          { boxShadow: '0 0 0 4px var(--lane-pulse)' },
+          { boxShadow: '0 0 0 8px transparent' },
+        ], { delay: duration, duration: 120, easing: 'ease-out' })
+        if (afterglow) {
+          dockAfterglows.add(afterglow)
+          const forgetAfterglow = () => dockAfterglows.delete(afterglow)
+          afterglow.onfinish = forgetAfterglow
+          afterglow.oncancel = forgetAfterglow
+          delivery.oncancel = () => afterglow.cancel()
+        }
         delivery.onfinish = () => {
-          if (revision === frame) box.hidden = true
+          if (revision === frame && delivery.playState === 'finished') box.hidden = true
+          delivery.oncancel = null
           delivery.cancel()
         }
       } else {
@@ -173,17 +197,30 @@ export function createBoard(level: Level, activate: (magnet: Magnet) => void) {
     }
   }
 
-  const tutorial = (ids: readonly string[], lane: boolean, matchParcels = false) => {
-    for (const cell of cells) cell.classList.remove('tutorial-cell')
+  const tutorial = (ids: readonly string[], lane: TutorialLane, matchParcels = false) => {
+    for (const cell of cells) cell.classList.remove('tutorial-cell', 'tutorial-dock-edge')
     for (const [magnet, button] of magnets) {
       const highlighted = ids.includes(magnet.id)
-      button.classList.toggle('tutorial-magnet', highlighted)
-      if (highlighted && lane) {
+      button.classList.toggle('tutorial-magnet', highlighted && lane !== 'dock-edge')
+      if (!highlighted) continue
+      if (lane === 'full') {
         for (const index of magnet.lane) cells[index].classList.add('tutorial-cell')
+      } else if (lane === 'dock-edge') {
+        cells[magnet.lane[0]].classList.add('tutorial-cell', 'tutorial-dock-edge')
       }
     }
     for (const parcel of parcels) boxes[parcel].classList.toggle('tutorial-parcel', matchParcels)
   }
 
-  return { element, describe, show, pulse, tutorial, focus: () => magnets.values().next().value?.focus() }
+  let hintButton: HTMLButtonElement | undefined
+  const highlightHint = (magnet?: Magnet, description?: string) => {
+    hintButton?.classList.remove('hint-magnet')
+    hintButton?.removeAttribute('aria-description')
+    hintButton = magnet && magnets.get(magnet)
+    hintButton?.classList.add('hint-magnet')
+    if (description) hintButton?.setAttribute('aria-description', description)
+    return hintButton?.getAttribute('aria-label')
+  }
+
+  return { element, describe, show, pulse, tutorial, highlightHint, cancelDockAfterglows, focus: () => magnets.values().next().value?.focus() }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
 
 const samples = [
   { label: 'Czech locale', locale: 'cs-CZ', lang: 'cs', play: 'Hrát' },
@@ -7,13 +7,14 @@ const samples = [
 ] as const
 
 for (const sample of samples) {
-  test(`selects the language for a ${sample.label}`, async ({ browser }) => {
-    const context = await browser.newContext({ locale: sample.locale })
-    const page = await context.newPage()
-    await page.goto('/')
-    await expect(page.locator('html')).toHaveAttribute('lang', sample.lang)
-    await expect(page.getByRole('button', { name: sample.play })).toBeVisible()
-    await context.close()
+  test.describe(sample.label, () => {
+    test.use({ locale: sample.locale })
+
+    test(`selects the language for a ${sample.label}`, async ({ page }) => {
+      await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('lang', sample.lang)
+      await expect(page.getByRole('button', { name: sample.play })).toBeVisible()
+    })
   })
 }
 
@@ -84,4 +85,21 @@ test('a setting changed in another tab preserves completed levels', async ({ pag
   await settingsTab.getByRole('button', { name: 'Úrovně' }).click()
   await expect(settingsTab.getByRole('button', { name: 'Úroveň 1, počet hvězd: 3' })).toBeEnabled()
   await expect(settingsTab.getByRole('button', { name: 'Úroveň 2, počet hvězd: 0' })).toBeEnabled()
+})
+
+test('warns at startup when storage is readable but writes exceed its quota', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => { throw new DOMException('Storage is full', 'QuotaExceededError') }
+  })
+  await page.goto('/')
+  await expect(page.getByText("Progress won't save")).toBeVisible()
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  const dock = page.locator('[data-magnet="W1A"]')
+  await dock.click()
+  await dock.click()
+  await expect(page.getByRole('heading', { name: 'Level 1 complete' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next level' }).click()
+  await expect(page.locator('.level-label')).toHaveText('Level 2')
+  expect(await page.evaluate(() => localStorage.getItem('parcel-pull.progress'))).toBeNull()
 })

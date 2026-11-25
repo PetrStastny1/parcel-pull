@@ -3,6 +3,11 @@
   "play": "Play",
   "continue": "Continue",
   "levels": "Levels",
+  "close": "Close",
+  "menu": "Menu",
+  "statistics": "Statistics",
+  "completedLevels": "Completed levels: {count} / {maximum}",
+  "earnedStars": "Earned stars: {count} / {maximum}",
   "settings": "Settings",
   "undo": "Undo",
   "restart": "Restart",
@@ -39,5 +44,14 @@
   "languageCzech": "Čeština",
   "board": "Board",
   "boardSize": "{columns} columns, {rows} rows.",
-  "wallPosition": "Wall at column {column}, row {row}."
+  "wallPosition": "Wall at column {column}, row {row}.",
+  "loading": "Preparing the game…",
+  "hint": "Hint",
+  "useHint": "Use hint",
+  "watchAd": "Watch ad for hint",
+  "adWaiting": "Waiting for ad",
+  "videoUnavailable": "Video unavailable",
+  "hintStock": "Hints available: {count}",
+  "hintedMagnet": "Suggested magnet",
+  "hintSuggestion": "Suggested magnet: {magnet}"
 }

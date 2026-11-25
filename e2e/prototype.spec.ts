@@ -1,5 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
 import type { Page } from '@playwright/test'
+import { boards } from '../src/levels/boards.ts'
+import { shortestRoute } from '../tools/solver/solve.ts'
 
 const routes = [
   'W1A W1A',
@@ -14,9 +16,6 @@ const routes = [
   'S4 S4 W4 W4 N1A W4 N1A N1A E2 N2B N2B W1C',
   'S3 E3 E3 W4B S3 W4B N1A S3 W4B W4B N1A N1A N1A W1C',
   'W2 W2 N1C N1C E1 N3A E1 E1 S4 S4 S4 W4B W4B W4B W4B',
-  'N1C W1 W1 W1 N1C E1B N1C E1B E1B E1B S5 E1B E1B N5 W1 W1 W1 W1 S1A S1A S1A S1A',
-  'N1C W4 W4 W4 W4 N1C N1C E1 N1C N1C W1 S1A W1 S1A S1A E4B E4B E4B E4B E4B S1A S1A',
-  'N2A N2A N2A E1 S5 E1 S5 E1 S5 W4C S5 W4C S5 W4C W4C N2A N2A N2A N2A S3B W4C',
 ]
 
 test.use({ locale: 'en-US', reducedMotion: 'reduce' })
@@ -56,9 +55,18 @@ async function checkFit(page: Page) {
   }
 }
 
-test('plays all fifteen solutions and persists completion and stars', async ({ page }) => {
+test('plays all forty solutions and persists completion and stars', async ({ page }) => {
+  test.setTimeout(90_000)
+  const generatedRoutes = boards.slice(routes.length).map((board) => {
+    const solution = shortestRoute(board)
+    if (!solution) throw new Error(`Level ${board.id} has no solution`)
+    return solution.moves.map(({ magnet }) => magnet.id).join(' ')
+  })
+  const campaignRoutes = [...routes, ...generatedRoutes]
+  expect(campaignRoutes).toHaveLength(40)
+
   await start(page)
-  for (const [index, route] of routes.entries()) {
+  for (const [index, route] of campaignRoutes.entries()) {
     await expect(moves(page, 0)).toBeVisible()
     if (index === 5) {
       await expect(page.getByRole('group', { name: 'Board' })).toHaveAccessibleDescription(
@@ -67,7 +75,7 @@ test('plays all fifteen solutions and persists completion and stars', async ({ p
     }
     await pull(page, route)
 
-    const lastLevel = index === routes.length - 1
+    const lastLevel = index === campaignRoutes.length - 1
     const result = lastLevel ? 'All levels complete' : `Level ${index + 1} complete`
     await expect(page.getByRole('heading', { name: result, exact: true })).toBeVisible()
     if (index === 11) {
@@ -81,17 +89,17 @@ test('plays all fifteen solutions and persists completion and stars', async ({ p
   }
   await expect(action(page, 'Replay')).toBeVisible()
   await expect(action(page, 'Next level')).toHaveCount(0)
-  await expect(page.getByRole('img', { name: 'Stars: 45' })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Stars: 120' })).toBeVisible()
   await action(page, 'Levels').click()
   await action(page, 'Back').click()
   await expect(page.getByRole('heading', { name: 'All levels complete' })).toBeVisible()
 
   await page.reload()
   await action(page, 'Levels').click()
-  for (let level = 1; level <= routes.length; level += 1) {
+  for (let level = 1; level <= campaignRoutes.length; level += 1) {
     await expect(action(page, `Level ${level}, stars: 3`)).toBeEnabled()
   }
-  await expect(page.locator('button[data-level]')).toHaveCount(15)
+  await expect(page.locator('button[data-level]')).toHaveCount(40)
 })
 
 test('returns to the same victory after closing the level picker', async ({ page }) => {
