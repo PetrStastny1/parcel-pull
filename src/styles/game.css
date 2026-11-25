@@ -319,3 +319,112 @@ button:focus-visible, select:focus-visible {
 @keyframes result-in {
   from { transform: translateY(var(--space-2)); opacity: 0; }
 }
+
+.title-screen {
+  width: 100%;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(var(--space-5), 5svh, var(--space-12));
+  padding: var(--space-6) var(--space-4);
+}
+.title-hero { display: grid; justify-items: center; gap: clamp(var(--space-3), 3svh, var(--space-6)); }
+.title-scene {
+  --scene-cell: clamp(36px, 9vmin, 52px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, var(--scene-cell));
+  grid-auto-rows: var(--scene-cell);
+  padding: var(--space-3);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  background: var(--stage);
+}
+.scene-cell { margin: 2px; border-radius: var(--radius-sm); background: var(--cell-bg); }
+.scene-dock {
+  margin: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: var(--radius-md);
+  background: var(--parcel-color);
+  color: var(--parcel-ink);
+}
+.scene-dock .parcel-symbol { width: calc(var(--scene-cell) * .23); }
+.scene-dock .magnet-arrow { font-size: calc(var(--scene-cell) * .3); font-weight: var(--weight-bold); line-height: 1; }
+.scene-parcel {
+  position: absolute;
+  top: calc(var(--space-3) + 6px);
+  left: calc(var(--space-3) + 4 * var(--scene-cell) + 6px);
+  width: calc(var(--scene-cell) - 12px);
+  height: calc(var(--scene-cell) - 12px);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--parcel-color);
+  color: var(--parcel-ink);
+}
+.scene-parcel .parcel-symbol { width: calc(var(--scene-cell) * .34); }
+.title-logo {
+  margin: 0;
+  font-size: clamp(2.75rem, 12vw, 4.75rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+.title-panel { width: min(100%, 360px); display: grid; gap: var(--space-4); }
+.title-progress { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.title-progress > div {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: center;
+}
+.title-progress dd { margin: 0; font-size: var(--text-title-3); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
+.title-progress dt { color: var(--label-secondary); font-size: var(--text-footnote); }
+.title-stars dd { color: var(--star); }
+.title-notice { margin: 0; color: var(--label-secondary); font-size: var(--text-subhead); text-align: center; }
+.title-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.title-actions .action { font-size: var(--text-callout); }
+.title-actions .primary { grid-column: 1 / -1; min-height: 56px; font-size: var(--text-title-3); }
+@media (max-height: 520px) and (orientation: landscape) {
+  .title-screen {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+    align-items: center;
+    column-gap: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+  }
+  .title-scene { --scene-cell: clamp(32px, 10svh, 44px); }
+  .title-logo { font-size: clamp(2.25rem, 12svh, 3.5rem); }
+  .title-panel { gap: var(--space-3); }
+  .title-actions .primary { min-height: 48px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scene-parcel { animation: scene-parcel 3.6s var(--ease) infinite; }
+  .scene-cell { animation: scene-lane 3.6s var(--ease) infinite; }
+  .scene-dock { animation: scene-dock 3.6s var(--ease) infinite; }
+}
+@keyframes scene-parcel {
+  0% { transform: scale(.6); opacity: 0; }
+  10%, 30% { transform: none; opacity: 1; }
+  58% { transform: translateX(calc(-3 * var(--scene-cell))); opacity: 1; }
+  68% { transform: translateX(calc(-4 * var(--scene-cell))) scale(.5); opacity: 0; }
+  100% { transform: translateX(calc(-4 * var(--scene-cell))) scale(.5); opacity: 0; }
+}
+@keyframes scene-lane {
+  0%, 26% { background: var(--cell-bg); }
+  34% { background: var(--lane-pulse); }
+  60%, 100% { background: var(--cell-bg); }
+}
+@keyframes scene-dock {
+  0%, 62% { box-shadow: 0 0 0 0 transparent; }
+  70% { box-shadow: 0 0 0 4px var(--lane-pulse); }
+  88%, 100% { box-shadow: 0 0 0 0 transparent; }
+}
