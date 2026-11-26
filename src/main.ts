@@ -61,6 +61,7 @@ let campaignJustCompleted = false
 const usedHints = new Set<number>()
 const requestedVideos = new Set<number>()
 let videoUnavailable = false
+let bonusAnnouncementPending = false
 let claimingHint = false
 let hintMagnet: Magnet | undefined
 let hintRemaining = 0
@@ -284,15 +285,16 @@ async function watchBonus() {
   await save({ run })
   updatingRun = false
   dialogReturnFocus = undefined
+  // The status region is outside the accessibility tree while a modal dialog is open, so announce on return to play.
+  bonusAnnouncementPending = true
   if (document.hidden) {
     screen = 'pause'
     updateAudio()
     renderDialog()
+    refreshBoard()
   } else {
     resume()
   }
-  // The status region is outside the accessibility tree while the ad dialog is modal.
-  refreshBoard(undefined, undefined, undefined, copy('extraMoves'))
 }
 
 async function playAd(placement: AdKind) {
@@ -575,6 +577,10 @@ function resume() {
   screen = 'game'
   updateAudio()
   renderDialog()
+  if (bonusAnnouncementPending) {
+    bonusAnnouncementPending = false
+    refreshBoard(undefined, undefined, undefined, copy('extraMoves'))
+  }
   tutorial(true)
   startGameplay()
   if (dialogReturnFocus?.isConnected && !dialogReturnFocus.matches(':disabled')) {
@@ -602,6 +608,7 @@ async function enter(id: number, reset = false) {
   cancelTutorial()
   clearHint()
   dialogReturnFocus = undefined
+  bonusAnnouncementPending = false
   level = levels[id - 1]
   run = !reset && progress.run?.level === id && !progress.run.won ? progress.run : freshRun(level)
   const saved = save({ run })

@@ -330,6 +330,7 @@ button:focus-visible, select:focus-visible {
 .empty-stars { color: var(--star-empty); }
 @media (max-height: 380px) {
   .game-dialog { padding: var(--space-4); }
+  .game-dialog[data-screen='outOfMoves'] .dialog-details:not(:empty) + .dialog-actions { margin-top: var(--space-3); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

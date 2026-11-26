@@ -106,13 +106,11 @@ export function readProgress(levels: readonly Level[], legacyLevelIds: Readonly<
       (run.bonus === undefined || typeof run.bonus === 'boolean') &&
       (run.bonusRequested === undefined || typeof run.bonusRequested === 'boolean') &&
       (run.bonus !== true || run.bonusRequested === true) &&
-      Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
-      const bonus = run.bonus === true
-      // Runs saved before the move limit may be longer; keep only the most recent moves the limit allows.
-      const allowed = moveLimit(level) + (bonus ? bonusMoves : 0)
+      Array.isArray(run.history) && run.history.length <= moveLimit(level) + (run.bonus === true ? bonusMoves : 0) &&
+      run.history.every((state: unknown) => validPositions(state, level))) {
       progress.run = {
-        level: level.id, positions: run.positions, history: run.history.slice(-allowed), won: run.won,
-        bonus, bonusRequested: run.bonusRequested === true,
+        level: level.id, positions: run.positions, history: run.history, won: run.won,
+        bonus: run.bonus === true, bonusRequested: run.bonusRequested === true,
       }
     }
   }

@@ -54,7 +54,7 @@
   "hintedMagnet": "Doporučený magnet",
   "hintSuggestion": "Doporučený magnet: {magnet}",
   "movesLeft": "Zbývá tahů: {count}",
-  "movesLeftShort": "Zbývá {count}",
+  "movesLeftShort": "Ještě {count}",
   "outOfMoves": "Došly tahy",
   "outOfMovesDetail": "Všech {count} tahů je vyčerpáno. Vrať tah nebo začni znovu.",
   "extraMoves": "+5 tahů",

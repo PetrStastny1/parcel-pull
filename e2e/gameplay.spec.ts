@@ -620,21 +620,30 @@ test('grants five extra moves once per attempt after a completed rewarded ad', a
   await expect(page.locator('.moves-left')).toHaveText('10 left')
 })
 
-test('trims a run saved before the limit so Undo and the bonus still count single moves', async ({ page }) => {
-  await installPlatform(page, ['rewarded'])
-  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 8) })
+test('starts afresh when a run saved before the limit is already past it', async ({ page }) => {
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: progressAfter(1), run: runNearLimit(1, levelOneStart, 8) })
   await page.goto('/')
   await action(page, en.continue).click()
-  const dialog = page.getByRole('dialog', { name: en.outOfMoves })
-  await expect(dialog).toContainText('All 6 moves are used.')
-  await expect(page.locator('.moves')).toHaveText('Moves: 6')
-  await dialog.getByRole('button', { name: en.undo }).click()
-  await expect(page.locator('.moves-left')).toHaveText('1 left')
+  await expect(page.locator('.level-label')).toHaveText('Level 2')
+  await expect(page.locator('.moves')).toHaveText('Moves: 0')
+  expect((await storedProgress(page))?.results).toEqual(progressAfter(1))
+})
+
+test('announces a bonus earned behind a hidden tab once play resumes', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 5) })
+  await page.goto('/')
+  await action(page, en.continue).click()
   await pull(page, 'W1A')
-  await dialog.getByRole('button', { name: en.extraMovesLabel, exact: true }).click()
+  await page.getByRole('button', { name: en.extraMovesLabel, exact: true }).click()
   await expect(page.getByRole('dialog', { name: en.adWaiting })).toBeVisible()
+  await setHidden(page, true)
   await finishAd(page, 'completed')
-  await expect(page.locator('.moves-left')).toHaveText('5 left')
+  await expect(page.getByRole('dialog', { name: en.pause })).toBeVisible()
+  await expect(page.getByRole('status')).not.toContainText(en.extraMoves)
+  await setHidden(page, false)
+  await action(page, en.resume).click()
+  await expect(page.getByRole('status')).toContainText(`${en.extraMoves} Parcels left: 1 Moves left: 5`)
 })
 
 test('does not offer a second bonus after the attempt already received one', async ({ page }) => {
