@@ -637,13 +637,16 @@ test('announces a bonus earned behind a hidden tab once play resumes', async ({ 
   await pull(page, 'W1A')
   await page.getByRole('button', { name: en.extraMovesLabel, exact: true }).click()
   await expect(page.getByRole('dialog', { name: en.adWaiting })).toBeVisible()
+  const beforeAd = (await collected(page)).signals
   await setHidden(page, true)
   await finishAd(page, 'completed')
   await expect(page.getByRole('dialog', { name: en.pause })).toBeVisible()
   await expect(page.getByRole('status')).not.toContainText(en.extraMoves)
   await setHidden(page, false)
+  expect((await collected(page)).signals).toEqual(beforeAd)
   await action(page, en.resume).click()
   await expect(page.getByRole('status')).toContainText(`${en.extraMoves} Parcels left: 1 Moves left: 5`)
+  expect((await collected(page)).signals).toEqual([...beforeAd, 'gameplayStart'])
 })
 
 test('does not offer a second bonus after the attempt already received one', async ({ page }) => {
