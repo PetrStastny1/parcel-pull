@@ -3,7 +3,7 @@ import { parcels, positionKey, pull, stars } from './game/logic/game.ts'
 import type { Magnet, Positions } from './game/logic/game.ts'
 import { createBoard } from './game/render/board.ts'
 import type { Copy, TutorialLane } from './game/render/board.ts'
-import { freshRun, moveRun, undoRun } from './game/run.ts'
+import { freshRun, grantBonus, isOutOfMoves, moveRun, movesLeft, requestBonus, undoRun } from './game/run.ts'
 import type { SavedRun } from './game/run.ts'
 import { applyProgressChange, canWriteProgress, readProgress, unlockedLevel, writePreference, writeProgress } from './game/storage.ts'
 import type { ProgressChange } from './game/storage.ts'
@@ -17,7 +17,7 @@ import { createTitleScreen } from './ui/title.ts'
 import './styles/tokens.css'
 import './styles/game.css'
 
-type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'blocked' | 'won' | 'hint' | 'ad'
+type Screen = 'loading' | 'menu' | 'game' | 'pause' | 'settings' | 'levels' | 'blocked' | 'outOfMoves' | 'won' | 'hint' | 'ad'
 type LevelPickerSource = Extract<Screen, 'menu' | 'pause' | 'blocked' | 'won'>
 
 const dialogDismissals: Partial<Record<Screen, () => void>> = {
@@ -46,7 +46,7 @@ let returnTo: LevelPickerSource = 'menu'
 let returnAction: MessageKey = 'levels'
 let dialogReturnFocus: HTMLElement | undefined
 let animationTimer: number | undefined
-let pendingScreen: 'won' | 'blocked' | undefined
+let pendingScreen: 'won' | 'blocked' | 'outOfMoves' | undefined
 let tutorialTimer: number | undefined
 let tutorialClear: number | undefined
 let platform: Platform
@@ -74,7 +74,7 @@ game.innerHTML = `<header class="game-header"><div class="brand"></div><div clas
   <div class="stage"></div>
   <div class="controls">
     <p class="objective"></p>
-    <div class="moves"></div>
+    <div class="move-count"><div class="moves"></div><div class="moves-left"></div></div>
     <div class="remaining"></div>
     <div class="game-actions"></div>
     <div class="sr-only" role="status" aria-atomic="true"></div>
@@ -84,6 +84,7 @@ const brand = game.querySelector<HTMLElement>('.brand')!
 const levelLabel = game.querySelector<HTMLElement>('.level-label')!
 const objective = game.querySelector<HTMLElement>('.objective')!
 const moves = game.querySelector<HTMLElement>('.moves')!
+const movesLeftLabel = game.querySelector<HTMLElement>('.moves-left')!
 const remaining = game.querySelector<HTMLElement>('.remaining')!
 const actions = game.querySelector<HTMLElement>('.game-actions')!
 const status = game.querySelector<HTMLElement>('[role="status"]')!
@@ -260,6 +261,39 @@ async function watchVideo() {
   }
 }
 
+function canWatchBonus() {
+  return !run.bonusRequested && platform.supportsAd('rewarded')
+}
+
+async function watchBonus() {
+  if (screen !== 'outOfMoves' || document.hidden || !canWatchBonus()) return
+  updatingRun = true
+  run = requestBonus(run)
+  await save({ run })
+  updatingRun = false
+  const outcome = await playAd('rewarded')
+  if (outcome !== 'completed') {
+    videoUnavailable = true
+    screen = 'outOfMoves'
+    updateAudio()
+    renderDialog()
+    return
+  }
+  updatingRun = true
+  run = grantBonus(run)
+  await save({ run })
+  updatingRun = false
+  refreshBoard(undefined, undefined, undefined, copy('movesLeft', { count: movesLeft(level, run) }))
+  dialogReturnFocus = undefined
+  if (document.hidden) {
+    screen = 'pause'
+    updateAudio()
+    renderDialog()
+  } else {
+    resume()
+  }
+}
+
 async function playAd(placement: AdKind) {
   screen = 'ad'
   updateAudio()
@@ -296,13 +330,16 @@ function updateCopy() {
 
 function refreshBoard(previous?: Positions, magnet?: Magnet, duration?: number, announcement = '') {
   const count = parcels.filter((parcel) => run.positions[parcel] >= 0).length
+  const left = movesLeft(level, run)
   moves.textContent = copy('moves', { count: run.history.length })
+  movesLeftLabel.textContent = copy('movesLeft', { count: left })
+  movesLeftLabel.toggleAttribute('data-low', left <= 2)
   remaining.textContent = copy('remaining', { count })
   undoButton.disabled = run.history.length === 0
   updateHintButton()
   board.show(run.positions, previous, magnet, duration)
   const positions = board.describe(copy, run.positions)
-  status.textContent = [announcement, remaining.textContent, positions].filter(Boolean).join(' ')
+  status.textContent = [announcement, remaining.textContent, movesLeftLabel.textContent, positions].filter(Boolean).join(' ')
 }
 
 function cancelTutorial() {
@@ -362,7 +399,7 @@ function renderDialog(focus = true) {
   const earnedStars = results.reduce((sum, result) => sum + result.stars, 0)
   const final = results.length === maximum && (level.id === maximum || campaignJustCompleted)
   const screenTitle: Record<Exclude<Screen, 'game' | 'menu' | 'loading'>, MessageKey> = {
-    pause: 'pause', settings: 'settings', levels: 'levels', blocked: 'routeBlocked',
+    pause: 'pause', settings: 'settings', levels: 'levels', blocked: 'routeBlocked', outOfMoves: 'outOfMoves',
     won: final ? 'gameWon' : 'levelWon', hint: 'hint', ad: 'adWaiting',
   }
   dialog.dataset.screen = screen
@@ -456,6 +493,28 @@ function renderDialog(focus = true) {
     add('levels', () => openLevels('blocked'))
   }
 
+  if (screen === 'outOfMoves') {
+    const detail = document.createElement('p')
+    detail.textContent = copy('outOfMovesDetail', { count: run.history.length })
+    details.append(detail)
+    if (videoUnavailable) {
+      const notice = document.createElement('p')
+      notice.setAttribute('role', 'alert')
+      notice.textContent = copy('videoUnavailable')
+      details.append(notice)
+    }
+    add('undo', undo, true)
+    add('restart', restart)
+    if (canWatchBonus()) {
+      const video = add('extraMoves', watchBonus)
+      video.setAttribute('aria-label', copy('extraMovesLabel'))
+      const icon = document.createElement('span')
+      icon.setAttribute('aria-hidden', 'true')
+      icon.className = 'video-icon'
+      video.prepend(icon)
+    }
+  }
+
   if (screen === 'won') {
     const earned = final ? earnedStars : stars(level, run.history.length)
     details.append(starRating(earned, final ? maximum * 3 : 3, copy('stars', { count: earned })))
@@ -511,7 +570,7 @@ function back() {
 
 function resume() {
   if (document.hidden || claimingHint || (screen !== 'pause' && screen !== 'blocked' &&
-      screen !== 'hint' && screen !== 'ad')) return
+      screen !== 'outOfMoves' && screen !== 'hint' && screen !== 'ad')) return
   screen = 'game'
   updateAudio()
   renderDialog()
@@ -558,7 +617,9 @@ async function enter(id: number, reset = false) {
   updatingRun = false
   onTitle = false
   if (!level.winning.has(positionKey(run.positions))) screen = 'blocked'
+  else if (isOutOfMoves(level, run)) screen = 'outOfMoves'
   else screen = document.hidden ? 'pause' : 'game'
+  videoUnavailable = false
   updateAudio()
   renderDialog()
   if (screen === 'game') {
@@ -627,6 +688,11 @@ async function activate(magnet: Magnet) {
     pendingScreen = 'blocked'
     stopGameplay()
     cancelTutorial()
+  } else if (isOutOfMoves(level, run)) {
+    pendingScreen = 'outOfMoves'
+    videoUnavailable = false
+    stopGameplay()
+    cancelTutorial()
   }
   const { firstCompletion } = await save({ run, result })
   updatingRun = false
@@ -637,7 +703,7 @@ async function activate(magnet: Magnet) {
     if (firstCompletion) reportCompletion()
   } else if (pendingScreen === 'blocked') {
     platform.record({ type: 'level_blocked', ...eventContext() })
-  } else if (screen === 'game') {
+  } else if (screen === 'game' && !pendingScreen) {
     if (level.id === 1 || level.id === 2) tutorial(false)
     else cancelTutorial()
   }
@@ -661,7 +727,11 @@ async function restore(restoredRun: SavedRun, animate: boolean) {
   run = restoredRun
   await save({ run })
   updatingRun = false
-  if (screen === 'blocked') {
+  if (isOutOfMoves(level, run)) {
+    screen = 'outOfMoves'
+    videoUnavailable = false
+    renderDialog()
+  } else if (screen === 'blocked' || screen === 'outOfMoves') {
     dialogReturnFocus = undefined
     if (document.hidden) {
       screen = 'pause'
@@ -677,7 +747,8 @@ async function restore(restoredRun: SavedRun, animate: boolean) {
 }
 
 function undo() {
-  if ((screen !== 'game' && screen !== 'blocked') || updatingRun || animationTimer !== undefined || document.hidden) return
+  if ((screen !== 'game' && screen !== 'blocked' && screen !== 'outOfMoves') || updatingRun || animationTimer !== undefined ||
+      document.hidden) return
   const restoredRun = undoRun(run)
   if (restoredRun === run) return
   audio.unlock()
@@ -686,7 +757,8 @@ function undo() {
 }
 
 function restart() {
-  if ((screen !== 'game' && screen !== 'blocked') || updatingRun || animationTimer !== undefined || document.hidden) return
+  if ((screen !== 'game' && screen !== 'blocked' && screen !== 'outOfMoves') || updatingRun || animationTimer !== undefined ||
+      document.hidden) return
   activeDuration = 0
   if (activeSince !== undefined) activeSince = performance.now()
   void restore(freshRun(level), false)

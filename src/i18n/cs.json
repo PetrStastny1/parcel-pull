@@ -52,5 +52,10 @@
   "videoUnavailable": "Video není dostupné",
   "hintStock": "Zbývající nápovědy: {count}",
   "hintedMagnet": "Doporučený magnet",
-  "hintSuggestion": "Doporučený magnet: {magnet}"
+  "hintSuggestion": "Doporučený magnet: {magnet}",
+  "movesLeft": "Zbývá tahů: {count}",
+  "outOfMoves": "Došly tahy",
+  "outOfMovesDetail": "Všechny tahy jsou vyčerpané. Limit: {count}.",
+  "extraMoves": "+5 tahů",
+  "extraMovesLabel": "+5 tahů, přehrát video"
 }
