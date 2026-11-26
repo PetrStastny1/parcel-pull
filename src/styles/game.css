@@ -245,7 +245,6 @@ button:focus-visible, select:focus-visible {
   .game-actions .action {
     padding-inline: var(--space-1);
     font-size: var(--text-footnote);
-    white-space: nowrap;
   }
   .objective { display: none; }
 }

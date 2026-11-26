@@ -306,6 +306,12 @@ test.describe('Czech compact layout', () => {
         const controls = await page.locator('.controls').boundingBox()
         expect(controls?.x).toBeGreaterThan(stage?.x ?? 0)
       }
+      if (viewport.width === 568 && viewport.height === 320) {
+        const moves = await page.locator('.moves').boundingBox()
+        const badge = await page.locator('.moves-left').boundingBox()
+        expect(badge?.x).toBe(moves?.x)
+        expect(badge?.y).toBeGreaterThanOrEqual((moves?.y ?? 0) + (moves?.height ?? 0))
+      }
     }
   })
 })
