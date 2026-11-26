@@ -67,3 +67,8 @@ export function stars(level: Level, moves: number): number {
   if (moves <= level.minimum + 2) return 2
   return 1
 }
+
+export function moveLimit(level: Level): number {
+  const reserve = level.id <= 5 ? 4 : level.id <= 20 ? 3 : level.id <= 30 ? 2 : 1
+  return level.minimum + reserve
+}
