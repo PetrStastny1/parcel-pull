@@ -55,7 +55,7 @@
   "hintSuggestion": "Suggested magnet: {magnet}",
   "movesLeft": "Moves left: {count}",
   "outOfMoves": "Out of moves",
-  "outOfMovesDetail": "All {count} moves are used.",
+  "outOfMovesDetail": "All {count} moves are used. Undo a move or start over.",
   "extraMoves": "+5 moves",
   "extraMovesLabel": "+5 moves, watch an ad"
 }

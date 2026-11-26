@@ -534,7 +534,7 @@ test('counts down moves left, stops at the limit and recovers through Undo and R
   await pull(page, 'W1A')
   const dialog = page.getByRole('dialog', { name: en.outOfMoves })
   await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('All 6 moves are used.')
+  await expect(dialog).toContainText('All 6 moves are used. Undo a move or start over.')
   await expect(dialog.getByRole('button', { name: en.undo })).toBeFocused()
   await expect(dialog.getByRole('button', { name: en.restart })).toBeVisible()
   await expect(dialog.getByRole('button', { name: en.extraMovesLabel })).toHaveCount(0)
@@ -545,14 +545,19 @@ test('counts down moves left, stops at the limit and recovers through Undo and R
   await page.reload()
   await action(page, en.continue).click()
   await expect(page.getByRole('dialog', { name: en.outOfMoves })).toBeVisible()
+  expect((await collected(page)).signals.at(-1)).toBe('loadingStop')
 
   await dialog.getByRole('button', { name: en.undo }).click()
   await expect(dialog).toBeHidden()
   await expect(page.locator('.moves')).toHaveText('Moves: 5')
   await expect(page.locator('.moves-left')).toHaveText('Moves left: 1')
+  await expect.poll(async () => (await collected(page)).signals.slice(2)).toEqual(['gameplayStart'])
   await pull(page, 'W1A')
   await dialog.getByRole('button', { name: en.restart }).click()
   await expect(dialog).toBeHidden()
+  await expect.poll(async () => (await collected(page)).signals.slice(2)).toEqual([
+    'gameplayStart', 'gameplayStop', 'gameplayStart',
+  ])
   await expect(page.locator('.moves')).toHaveText('Moves: 0')
   await expect(page.locator('.moves-left')).toHaveText('Moves left: 6')
   await pull(page, 'W1A W1A')
@@ -612,6 +617,22 @@ test('grants five extra moves once per attempt after a completed rewarded ad', a
   await expect(page.locator('.moves-left')).toHaveText('Moves left: 6')
   await action(page, en.restart).click()
   await expect(page.locator('.moves-left')).toHaveText('Moves left: 10')
+})
+
+test('does not offer a second bonus after the attempt already received one', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  const run = { ...runNearLimit(1, levelOneStart, 10), bonus: true, bonusRequested: true }
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await expect(page.locator('.moves-left')).toHaveText('Moves left: 1')
+  await pull(page, 'W1A')
+  const dialog = page.getByRole('dialog', { name: en.outOfMoves })
+  await expect(dialog).toContainText('All 11 moves are used.')
+  await expect(dialog.getByRole('button', { name: en.extraMovesLabel })).toHaveCount(0)
+  await dialog.getByRole('button', { name: en.restart }).click()
+  await expect(page.locator('.moves-left')).toHaveText('Moves left: 6')
+  expect((await collected(page)).requests).toEqual([])
 })
 
 for (const { locale, copy, outcome } of [

@@ -55,7 +55,7 @@
   "hintSuggestion": "Doporučený magnet: {magnet}",
   "movesLeft": "Zbývá tahů: {count}",
   "outOfMoves": "Došly tahy",
-  "outOfMovesDetail": "Všechny tahy jsou vyčerpané. Limit: {count}.",
+  "outOfMovesDetail": "Využili jste všech {count} tahů. Vraťte tah nebo začněte znovu.",
   "extraMoves": "+5 tahů",
   "extraMovesLabel": "+5 tahů, přehrát video"
 }

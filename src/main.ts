@@ -283,7 +283,7 @@ async function watchBonus() {
   run = grantBonus(run)
   await save({ run })
   updatingRun = false
-  refreshBoard(undefined, undefined, undefined, copy('movesLeft', { count: movesLeft(level, run) }))
+  refreshBoard(undefined, undefined, undefined, copy('extraMoves'))
   dialogReturnFocus = undefined
   if (document.hidden) {
     screen = 'pause'
