@@ -166,7 +166,7 @@ button:focus-visible, select:focus-visible {
   background: var(--fill);
   color: var(--label);
   padding: 2px var(--space-2);
-  font-size: var(--text-footnote);
+  font-size: var(--text-callout);
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -201,15 +201,15 @@ button:focus-visible, select:focus-visible {
   .controls {
     margin: 0 var(--space-2);
     padding: var(--space-2) var(--space-3);
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    align-items: baseline;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
     gap: var(--space-2);
   }
-  .move-count { flex-wrap: nowrap; gap: var(--space-1); }
-  .moves { font-size: var(--text-title-3); white-space: nowrap; }
-  .remaining { text-align: right; }
-  .game-actions { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .move-count { flex-wrap: nowrap; }
+  .moves, .remaining { white-space: nowrap; }
+  .game-actions { display: grid; flex-basis: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .game-actions .action { padding-inline: var(--space-1); }
   .game-actions:has(.game-hint:not([hidden])) {
     grid-template-columns: repeat(4, minmax(var(--hit-target), 1fr));
@@ -221,7 +221,9 @@ button:focus-visible, select:focus-visible {
   .objective { display: none; }
 }
 @media (max-width: 359px) and (orientation: portrait) {
-  .moves { font-size: var(--text-callout); }
+  .controls { padding-inline: var(--space-2); }
+  .move-count { gap: var(--space-1); }
+  .moves { font-size: var(--text-title-3); }
   .remaining { font-size: var(--text-footnote); }
   .stage { min-height: 266px; margin-inline: 0; }
 }
@@ -240,8 +242,9 @@ button:focus-visible, select:focus-visible {
     grid-template-columns: repeat(2, minmax(var(--hit-target), 1fr));
   }
   .game-actions .action {
-    padding-inline: var(--space-1);
+    padding-inline: 2px;
     font-size: var(--text-footnote);
+    white-space: nowrap;
   }
   .objective { display: none; }
 }

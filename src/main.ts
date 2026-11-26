@@ -283,7 +283,6 @@ async function watchBonus() {
   run = grantBonus(run)
   await save({ run })
   updatingRun = false
-  refreshBoard(undefined, undefined, undefined, copy('extraMoves'))
   dialogReturnFocus = undefined
   if (document.hidden) {
     screen = 'pause'
@@ -292,6 +291,8 @@ async function watchBonus() {
   } else {
     resume()
   }
+  // The status region is outside the accessibility tree while the ad dialog is modal.
+  refreshBoard(undefined, undefined, undefined, copy('extraMoves'))
 }
 
 async function playAd(placement: AdKind) {
@@ -332,14 +333,14 @@ function refreshBoard(previous?: Positions, magnet?: Magnet, duration?: number, 
   const count = parcels.filter((parcel) => run.positions[parcel] >= 0).length
   const left = movesLeft(level, run)
   moves.textContent = copy('moves', { count: run.history.length })
-  movesLeftLabel.textContent = copy('movesLeft', { count: left })
+  movesLeftLabel.textContent = copy('movesLeftShort', { count: left })
   movesLeftLabel.toggleAttribute('data-low', left <= 2)
   remaining.textContent = copy('remaining', { count })
   undoButton.disabled = run.history.length === 0
   updateHintButton()
   board.show(run.positions, previous, magnet, duration)
   const positions = board.describe(copy, run.positions)
-  status.textContent = [announcement, remaining.textContent, movesLeftLabel.textContent, positions].filter(Boolean).join(' ')
+  status.textContent = [announcement, remaining.textContent, copy('movesLeft', { count: left }), positions].filter(Boolean).join(' ')
 }
 
 function cancelTutorial() {
@@ -727,11 +728,7 @@ async function restore(restoredRun: SavedRun, animate: boolean) {
   run = restoredRun
   await save({ run })
   updatingRun = false
-  if (isOutOfMoves(level, run)) {
-    screen = 'outOfMoves'
-    videoUnavailable = false
-    renderDialog()
-  } else if (screen === 'blocked' || screen === 'outOfMoves') {
+  if (screen === 'blocked' || screen === 'outOfMoves') {
     dialogReturnFocus = undefined
     if (document.hidden) {
       screen = 'pause'

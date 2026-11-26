@@ -56,7 +56,6 @@ test('stops at the move limit, returns a move on undo and extends the attempt on
   assert.equal(movesLeft(level, undoRun(extended)), 6)
   assert.equal(undoRun(extended).bonus, true)
   assert.deepEqual([freshRun(level).bonus, freshRun(level).bonusRequested], [false, false])
-  assert.equal(movesLeft(level, { ...run, history: [...run.history, ...run.history] }), 0)
 })
 
 test('a winning move on the last allowed turn is a win, not an exhausted attempt', () => {

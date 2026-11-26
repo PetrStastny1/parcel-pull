@@ -17,8 +17,7 @@ export function freshRun(level: Level): SavedRun {
 }
 
 export function movesLeft(level: Level, run: SavedRun): number {
-  // Runs saved before the limit existed may already be past it.
-  return Math.max(0, moveLimit(level) + (run.bonus ? bonusMoves : 0) - run.history.length)
+  return moveLimit(level) + (run.bonus ? bonusMoves : 0) - run.history.length
 }
 
 export function isOutOfMoves(level: Level, run: SavedRun): boolean {

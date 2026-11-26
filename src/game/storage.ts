@@ -1,5 +1,6 @@
-import { isWon, parcels } from './logic/game.ts'
+import { isWon, moveLimit, parcels } from './logic/game.ts'
 import type { Level, Positions } from './logic/game.ts'
+import { bonusMoves } from './run.ts'
 import type { SavedRun } from './run.ts'
 import type { Language } from '../i18n/index.ts'
 
@@ -106,9 +107,12 @@ export function readProgress(levels: readonly Level[], legacyLevelIds: Readonly<
       (run.bonusRequested === undefined || typeof run.bonusRequested === 'boolean') &&
       (run.bonus !== true || run.bonusRequested === true) &&
       Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
+      const bonus = run.bonus === true
+      // Runs saved before the move limit may be longer; keep only the most recent moves the limit allows.
+      const allowed = moveLimit(level) + (bonus ? bonusMoves : 0)
       progress.run = {
-        level: level.id, positions: run.positions, history: run.history, won: run.won,
-        bonus: run.bonus === true, bonusRequested: run.bonusRequested === true,
+        level: level.id, positions: run.positions, history: run.history.slice(-allowed), won: run.won,
+        bonus, bonusRequested: run.bonusRequested === true,
       }
     }
   }
