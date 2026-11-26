@@ -168,6 +168,7 @@ button:focus-visible, select:focus-visible {
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-callout);
   font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -221,7 +222,8 @@ button:focus-visible, select:focus-visible {
   .objective { display: none; }
 }
 @media (max-width: 359px) and (orientation: portrait) {
-  .controls { padding-inline: var(--space-2); }
+  /* Wider system fonts (e.g. DejaVu Sans on Linux) push parcels left onto its own row; keep that case inside 480px. */
+  .controls { padding: var(--space-1) var(--space-2); row-gap: var(--space-1); }
   .move-count { gap: var(--space-1); }
   .moves { font-size: var(--text-title-3); }
   .remaining { font-size: var(--text-footnote); }
