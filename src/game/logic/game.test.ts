@@ -2,7 +2,7 @@ import { deepStrictEqual, equal, strictEqual } from 'node:assert/strict'
 import { test } from 'node:test'
 import { parseBoard } from '../../levels/boards.ts'
 import { levels } from '../../levels/index.ts'
-import { isWon, positionKey, pull, stars } from './game.ts'
+import { isWon, moveLimit, positionKey, pull, stars } from './game.ts'
 
 test('a parcel advances one cell and takes a separate pull to deliver', () => {
   const board = parseBoard(1, ['.A.', '...'], ['W1A'])
@@ -63,4 +63,11 @@ test('the published blocked route is dead and the preceding state remains solvab
 test('stars use the three documented thresholds', () => {
   const level = levels[0]
   deepStrictEqual([2, 3, 4, 5].map((moves) => stars(level, moves)), [3, 2, 2, 1])
+})
+
+test('the move limit adds a reserve that shrinks across the campaign', () => {
+  const reserve = (id: number) => moveLimit(levels[id - 1]) - levels[id - 1].minimum
+  deepStrictEqual([1, 5, 6, 20, 21, 30, 31, 40].map(reserve), [4, 4, 3, 3, 2, 2, 1, 1])
+  equal(moveLimit(levels[0]), 6)
+  equal(moveLimit(levels[39]), 23)
 })

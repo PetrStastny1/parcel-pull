@@ -507,3 +507,204 @@ for (const { locale, copy } of [{ locale: 'en-US', copy: en }, { locale: 'cs-CZ'
     })
   })
 }
+
+function runNearLimit(level: number, positions: object, used: number) {
+  return { level, positions, history: Array.from({ length: used }, () => positions), won: false }
+}
+
+const levelOneStart = { A: 1, B: -1, C: -1 }
+
+test('counts down moves left, stops at the limit and recovers through Undo and Restart', async ({ page }) => {
+  await installPlatform(page)
+  await page.goto('/')
+  await action(page, en.play).click()
+  await expect(page.locator('.moves-left')).toHaveText('6 left')
+  await pull(page, 'W1A')
+  await expect(page.locator('.moves')).toHaveText('Moves: 1')
+  await expect(page.locator('.moves-left')).toHaveText('5 left')
+  await expect(page.getByRole('status')).toContainText('Moves left: 5')
+
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 5) })
+  await page.evaluate((key) => localStorage.removeItem(key), progressKey)
+  await page.reload()
+  await action(page, en.continue).click()
+  await expect(page.locator('.moves-left')).toHaveText('1 left')
+  await expect.poll(async () => (await collected(page)).signals.at(-1)).toBe('gameplayStart')
+  const before = (await collected(page)).signals.length
+  await pull(page, 'W1A')
+  const dialog = page.getByRole('dialog', { name: en.outOfMoves })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText('All 6 moves are used. Undo a move or start over.')
+  await expect(dialog.getByRole('button', { name: en.undo })).toBeFocused()
+  await expect(dialog.getByRole('button', { name: en.restart })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: en.extraMovesLabel })).toHaveCount(0)
+  expect((await collected(page)).signals.slice(before)).toEqual(['gameplayStop'])
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await page.reload()
+  await action(page, en.continue).click()
+  await expect(page.getByRole('dialog', { name: en.outOfMoves })).toBeVisible()
+  expect((await collected(page)).signals.at(-1)).toBe('loadingStop')
+
+  await dialog.getByRole('button', { name: en.undo }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('.moves')).toHaveText('Moves: 5')
+  await expect(page.locator('.moves-left')).toHaveText('1 left')
+  await expect.poll(async () => (await collected(page)).signals.slice(2)).toEqual(['gameplayStart'])
+  await pull(page, 'W1A')
+  await dialog.getByRole('button', { name: en.restart }).click()
+  await expect(dialog).toBeHidden()
+  await expect.poll(async () => (await collected(page)).signals.slice(2)).toEqual([
+    'gameplayStart', 'gameplayStop', 'gameplayStart',
+  ])
+  await expect(page.locator('.moves')).toHaveText('Moves: 0')
+  await expect(page.locator('.moves-left')).toHaveText('6 left')
+  await pull(page, 'W1A W1A')
+  await expect(page.getByRole('heading', { name: 'Level 1 complete' })).toBeVisible()
+})
+
+test('a win on the last allowed move beats the move limit', async ({ page }) => {
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 4) })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await expect(page.locator('.moves-left')).toHaveText('2 left')
+  await pull(page, 'W1A W1A')
+  await expect(page.getByRole('heading', { name: 'Level 1 complete' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: en.outOfMoves })).toHaveCount(0)
+})
+
+test('a blocked route on the last allowed move shows Route blocked', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  const start = levels[2].initial
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: progressAfter(2), run: runNearLimit(3, start, 8) })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await pull(page, 'E3B N2')
+  await expect(page.getByRole('dialog', { name: en.routeBlocked })).toBeVisible()
+  await expect(page.locator('.moves-left')).toHaveText('0 left')
+  await page.getByRole('dialog').getByRole('button', { name: en.undo }).click()
+  await expect(page.getByRole('dialog', { name: en.routeBlocked })).toBeHidden()
+  await expect(page.locator('.moves-left')).toHaveText('1 left')
+  expect((await collected(page)).requests).toEqual([])
+})
+
+test('grants five extra moves once per attempt after a completed rewarded ad', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: progressAfter(2), run: runNearLimit(3, levels[2].initial, 9) })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await pull(page, 'E3B')
+  const offer = page.getByRole('button', { name: en.extraMovesLabel, exact: true })
+  await expect(offer).toContainText(en.extraMoves)
+  const beforeAd = (await collected(page)).signals
+  await offer.click()
+  await expect(page.getByRole('dialog', { name: en.adWaiting })).toBeVisible()
+  await finishAd(page, 'completed')
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.locator('.moves')).toHaveText('Moves: 10')
+  await expect(page.locator('.moves-left')).toHaveText('5 left')
+  await expect(page.getByRole('status')).toContainText('+5 moves')
+  expect((await collected(page)).signals).toEqual([...beforeAd, 'gameplayStart'])
+  expect((await collected(page)).events.filter(({ type }) => type.startsWith('ad_'))).toEqual([
+    { type: 'ad_request', placement: 'rewarded', level: 3, moves: 10 },
+    { type: 'ad_outcome', placement: 'rewarded', outcome: 'completed', level: 3, moves: 10 },
+  ])
+
+  await action(page, en.undo).click()
+  await expect(page.locator('.moves-left')).toHaveText('6 left')
+  await page.reload()
+  await action(page, en.continue).click()
+  await expect(page.locator('.moves-left')).toHaveText('6 left')
+  await action(page, en.restart).click()
+  await expect(page.locator('.moves-left')).toHaveText('10 left')
+})
+
+test('starts afresh when a run saved before the limit is already past it', async ({ page }) => {
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: progressAfter(1), run: runNearLimit(1, levelOneStart, 8) })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await expect(page.locator('.level-label')).toHaveText('Level 2')
+  await expect(page.locator('.moves')).toHaveText('Moves: 0')
+  expect((await storedProgress(page))?.results).toEqual(progressAfter(1))
+})
+
+test('announces a bonus earned behind a hidden tab once play resumes', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 5) })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await pull(page, 'W1A')
+  await page.getByRole('button', { name: en.extraMovesLabel, exact: true }).click()
+  await expect(page.getByRole('dialog', { name: en.adWaiting })).toBeVisible()
+  const beforeAd = (await collected(page)).signals
+  await setHidden(page, true)
+  await finishAd(page, 'completed')
+  await expect(page.getByRole('dialog', { name: en.pause })).toBeVisible()
+  await expect(page.getByRole('status')).not.toContainText(en.extraMoves)
+  await setHidden(page, false)
+  expect((await collected(page)).signals).toEqual(beforeAd)
+  await action(page, en.resume).click()
+  await expect(page.getByRole('status')).toContainText(`${en.extraMoves} Parcels left: 1 Moves left: 5`)
+  expect((await collected(page)).signals).toEqual([...beforeAd, 'gameplayStart'])
+})
+
+test('does not offer a second bonus after the attempt already received one', async ({ page }) => {
+  await installPlatform(page, ['rewarded'])
+  const run = { ...runNearLimit(1, levelOneStart, 10), bonus: true, bonusRequested: true }
+  await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run })
+  await page.goto('/')
+  await action(page, en.continue).click()
+  await expect(page.locator('.moves-left')).toHaveText('1 left')
+  await pull(page, 'W1A')
+  const dialog = page.getByRole('dialog', { name: en.outOfMoves })
+  await expect(dialog).toContainText('All 11 moves are used.')
+  await expect(dialog.getByRole('button', { name: en.extraMovesLabel })).toHaveCount(0)
+  await dialog.getByRole('button', { name: en.restart }).click()
+  await expect(page.locator('.moves-left')).toHaveText('6 left')
+  expect((await collected(page)).requests).toEqual([])
+})
+
+for (const { locale, copy, outcome } of [
+  { locale: 'en-US', copy: en, outcome: 'error' },
+  { locale: 'cs-CZ', copy: cs, outcome: 'cancelled' },
+] as const) {
+  test.describe(`${locale} out of moves`, () => {
+    test.use({ locale, viewport: { width: 320, height: 480 } })
+
+    test(`keeps the limit and drops the offer when the rewarded ad returns ${outcome}`, async ({ page }) => {
+      await installPlatform(page, ['rewarded'])
+      await seedProgress(page, { version: 2, sound: true, hints: 0, results: {}, run: runNearLimit(1, levelOneStart, 5) })
+      await page.goto('/')
+      await action(page, copy.continue).click()
+      await expect(page.locator('.moves-left')).toHaveText(copy.movesLeftShort.replace('{count}', '1'))
+      await pull(page, 'W1A')
+      const dialog = page.getByRole('dialog', { name: copy.outOfMoves })
+      await expect(dialog).toBeVisible()
+      const offer = dialog.getByRole('button', { name: copy.extraMovesLabel, exact: true })
+      const size = await offer.boundingBox()
+      expect(size?.width).toBeGreaterThanOrEqual(44)
+      expect(size?.height).toBeGreaterThanOrEqual(44)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
+      const beforeAd = (await collected(page)).signals
+      await offer.click()
+      await expect(page.getByRole('dialog', { name: copy.adWaiting })).toBeVisible()
+      await finishAd(page, outcome)
+      await expect(dialog).toBeVisible()
+      await expect(dialog.getByRole('alert')).toHaveText(copy.videoUnavailable)
+      await expect(offer).toHaveCount(0)
+      await expect(page.locator('.moves-left')).toHaveText(copy.movesLeftShort.replace('{count}', '0'))
+      expect((await collected(page)).signals).toEqual(beforeAd)
+      expect((await collected(page)).requests).toEqual(['rewarded'])
+
+      await page.reload()
+      await action(page, copy.continue).click()
+      await expect(page.getByRole('dialog', { name: copy.outOfMoves })).toBeVisible()
+      await expect(offer).toHaveCount(0)
+      await page.getByRole('dialog').getByRole('button', { name: copy.restart }).click()
+      await expect.poll(async () => (await page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}'), progressKey)).run)
+        .toMatchObject({ history: [], bonus: false, bonusRequested: false })
+      expect((await collected(page)).requests).toEqual([])
+    })
+  })
+}

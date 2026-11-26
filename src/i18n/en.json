@@ -52,5 +52,11 @@
   "videoUnavailable": "Video unavailable",
   "hintStock": "Hints available: {count}",
   "hintedMagnet": "Suggested magnet",
-  "hintSuggestion": "Suggested magnet: {magnet}"
+  "hintSuggestion": "Suggested magnet: {magnet}",
+  "movesLeft": "Moves left: {count}",
+  "movesLeftShort": "{count} left",
+  "outOfMoves": "Out of moves",
+  "outOfMovesDetail": "All {count} moves are used. Undo a move or start over.",
+  "extraMoves": "+5 moves",
+  "extraMovesLabel": "+5 moves, watch an ad"
 }

@@ -1,5 +1,6 @@
-import { isWon, parcels } from './logic/game.ts'
+import { isWon, moveLimit, parcels } from './logic/game.ts'
 import type { Level, Positions } from './logic/game.ts'
+import { bonusMoves } from './run.ts'
 import type { SavedRun } from './run.ts'
 import type { Language } from '../i18n/index.ts'
 
@@ -102,8 +103,15 @@ export function readProgress(levels: readonly Level[], legacyLevelIds: Readonly<
     const level = typeof run.level === 'number' ? levels[currentId(run.level) - 1] : undefined
     if (level && (level.id <= unlockedLevel(progress, levels.length) || Object.values(legacyLevelIds).includes(level.id)) &&
       validPositions(run.positions, level) && run.won === isWon(run.positions) &&
-      Array.isArray(run.history) && run.history.every((state: unknown) => validPositions(state, level))) {
-      progress.run = { level: level.id, positions: run.positions, history: run.history, won: run.won }
+      (run.bonus === undefined || typeof run.bonus === 'boolean') &&
+      (run.bonusRequested === undefined || typeof run.bonusRequested === 'boolean') &&
+      (run.bonus !== true || run.bonusRequested === true) &&
+      Array.isArray(run.history) && run.history.length <= moveLimit(level) + (run.bonus === true ? bonusMoves : 0) &&
+      run.history.every((state: unknown) => validPositions(state, level))) {
+      progress.run = {
+        level: level.id, positions: run.positions, history: run.history, won: run.won,
+        bonus: run.bonus === true, bonusRequested: run.bonusRequested === true,
+      }
     }
   }
   return { progress, available: true, migrated }
